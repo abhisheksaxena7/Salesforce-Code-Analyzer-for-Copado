@@ -9,6 +9,12 @@
       "dependencies": [
         {
           "package": "copadoDeployer@20.0.0.0"
+        },
+        {
+          "package": "copadoDX@3.3"
+        },
+        {
+          "package": "copadoQIF@1.14"
         }
       ]
     }
@@ -19,6 +25,8 @@
   "sourceApiVersion": "55.0",
   "packageAliases": {
     "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
-    "copadoDeployer@20.0.0.0": "04t5p000000Xdf2AAC"
+    "copadoDeployer@20.0.0.0": "04t5p000000Xdf2AAC",
+    "copadoDX@3.3": "04t5p000000YGr1AAG",
+    "copadoQIF@1.14": "04t5p000000YGrzAAG"
   }
 }
