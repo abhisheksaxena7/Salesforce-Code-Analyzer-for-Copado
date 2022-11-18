@@ -1,12 +1,24 @@
 {
   "packageDirectories": [
     {
-      "path": "code-analyzer",
-      "default": true
+      "path": "./code-analyzer",
+      "default": true,
+      "package": "CopadoSFDXAnalyzer",
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "dependencies": [
+        {
+          "package": "copadoDeployer@20.0.0.0"
+        }
+      ]
     }
   ],
   "name": "CopadoSFDXAnalyzer",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "55.0"
+  "sourceApiVersion": "55.0",
+  "packageAliases": {
+    "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
+    "copadoDeployer@20.0.0.0": "04t5p000000Xdf2AAC"
+  }
 }
