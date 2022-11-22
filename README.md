@@ -1,4 +1,4 @@
-With this project, you can use Code Analyzer as a quality gate within Copado.
+With this project, you can use Code Analyzer as a quality gate within Copado, and run it on the changed/updated components in your Copado User Story or enforce it before every deployment. All results are available within the Test and Result objects.
 
 Q: What is Salesforce Code Analyzer (Code Analyzer)?
 Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
