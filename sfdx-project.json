@@ -27,6 +27,7 @@
     "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
     "copadoDeployer@20.0.0.0": "04t5p000000Xdf2AAC",
     "copadoDX@3.3": "04t5p000000YGr1AAG",
-    "copadoQIF@1.14": "04t5p000000YGrzAAG"
+    "copadoQIF@1.14": "04t5p000000YGrzAAG",
+    "CopadoSFDXAnalyzer@0.1.0-1": "04t8Z000000UeXNQA0"
   }
 }
