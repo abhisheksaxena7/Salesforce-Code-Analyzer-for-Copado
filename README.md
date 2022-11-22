@@ -1,18 +1,51 @@
-# Salesforce DX Project: Next Steps
+Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+To inspect your code, Code Analyzer uses multiple code analysis engines, including PMD, ESLint, RetireJS, and Salesforce Graph Engine. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis. Please read more [here.](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/faq/)
 
-## How Do You Plan to Deploy Your Changes?
+With this extension, you can use Code Analyzer as a quality gate within Copado.
+# Installing the Extension
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+## Pre-Requisites
+* Install Copado v20.0 or higher
+* Install Copado Quality Tools extension v1.14 or higher
+* Install Copado DX Extension v3.3 or higher
+* Install the [latest version of Copado SFDX Analyzer](https://login.salesforce.com/packaging/installPackage.apexp?p0=04t8Z000000UeXNQA0).
 
-## Configure Your Salesforce DX Project
+## Picklist Values
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+* Create the Following Picklist values
+* Object: Extension Configuration, Field: Extension Tool, Value: `sfdx-scanner`
+* Object: Quality Gate Rule Condition, Field: Platform, Value: SFDX
+* Picklist Value Set: Copado Test Tool, Value: `sfdx-scanner`
 
-## Read All About It
+## Create The Functions and Job Templates
+Navigate to the “Copado Extensions” tab, select “Checkmarx” and press the button “Generate Extension Records”.
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+![Generate Extension Records](./images/generate-extension-records.png)
+
+## Configure Function Parameters
+* `severityThreshold` - Throws an error when violations are found with equal or greater severity than the provided value. Normalized severity values are: 1 (high), 2 (moderate), and 3 (low). Exit code is the most severe violation. The default OOB value set is `2`. Feel free to edit it as per your project needs.
+
+* `engine` - Specifies one or more engines to run. Submit multiple values as a comma-separated list. Valid values need to be from either of these `eslint,eslint-lwc,eslint-typescript,pmd,retire-js,cpd`.
+The default OOB value is set to `eslint-lwc,pmd,cpd,retire-js`. Feel free to edit it as per your project needs.
+
+## Configure the Quality Gate
+
+### Create the Quality Gate Rule
+Navigate to the Quality Gate Rules tab and create a new record as follows. Note that the Type field will be populated automatically upon save. The global value set Test Tool should have a value for `SFDX Scanner` as part of this package. It can be created manually if necessary.
+
+![Configure Quality Gate](./images/create-quality-gate-rule.png)
+
+### Create the Quality Gate Rule Condition
+Set the conditions so that it only applies to `Pipelines/Stages/Environments` with Platform = `SFDX`. This picklist value can be added manually if necessary.
+Once saved, press the button “Activate” on the Quality Gate Rule record.
+
+![Quality Gate Rule Condition](./images/quality-gate-rule-condition.png)
+
+**You are all set.**
+
+To test the configuration, just perform a commit which contains ApexClass/LWC/AuraBundle on a user story on a SFDX platform Pipeline, and the Commit Action will enforce `SFDX Analyzer` after every commit.
+
+Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
+
+To inspect your code, Code Analyzer uses multiple code analysis engines, including PMD, ESLint, RetireJS, and Salesforce Graph Engine. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis.
