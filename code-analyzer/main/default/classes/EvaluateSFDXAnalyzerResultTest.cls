@@ -1,13 +1,13 @@
 @isTest
 public class EvaluateSFDXAnalyzerResultTest {
-    
+
     @isTest
     private static void executeQg() {
         System.runAs([SELECT Id FROM User WHERE Username = 'username@myemail.com'][0]) {
             // Setup
             copado__Result__c jobStepResult = [SELECT Id FROM copado__Result__c WHERE copado__Job_Type__c = 'Run_CodeAnalyzer_QIF' LIMIT 1];
-            
-            // Exercise 
+
+            // Exercise
             new EvaluateSFDXAnalyzerResult().execute(null, jobStepResult, 'Success');
 
             // Verify
@@ -16,14 +16,14 @@ public class EvaluateSFDXAnalyzerResultTest {
             System.assertEquals('Success', testResult.copado__Progress_Status__c, 'The progress status should not be Failed');
         }
     }
-    
+
     @isTest
     private static void executeQgFailure() {
         System.runAs([SELECT Id FROM User WHERE Username = 'username@myemail.com'][0]) {
             // Setup
             copado__Result__c jobStepResult = [SELECT Id FROM copado__Result__c WHERE copado__Job_Type__c = 'Run_CodeAnalyzer_QIF' LIMIT 1];
-            
-            // Exercise 
+
+            // Exercise
             new EvaluateSFDXAnalyzerResult().execute(null, jobStepResult, 'Failed');
 
             // Verify
@@ -39,7 +39,7 @@ public class EvaluateSFDXAnalyzerResultTest {
             //Setup
             String errorMessage = 'Attempt to de-reference a null';
 
-            // Exercise 
+            // Exercise
             Exception ex;
             try {
                 new EvaluateSFDXAnalyzerResult().execute(null, null, 'Success');
@@ -66,7 +66,7 @@ public class EvaluateSFDXAnalyzerResultTest {
             LanguageLocaleKey = 'en_US'
         );
         insert runAsUser;
-        
+
         System.runAs(runAsUser) {
             copado.GlobalAPI copadoGlobalAPI = new copado.GlobalAPI();
             copado.GlobalAPI.UserLicense userLicense = new copado.GlobalAPI.UserLicense();
@@ -74,29 +74,29 @@ public class EvaluateSFDXAnalyzerResultTest {
             userLicense.isCopadoEnabled = true;
             userLicense.userId = runAsUser.Id;
             copadoGlobalAPI.upsertCopadoLicense(userLicense);
-            
+
             PermissionSetAssignment copado = new PermissionSetAssignment();
             copado.PermissionSetId = [SELECT Id, Name FROM PermissionSet WHERE Name = 'Copado_User' LIMIT 1].Id;
             copado.AssigneeId = runAsUser.Id;
-    
+
             insert copado;
 
-        
-            copado__ExtensionConfiguration__c extensionConfiguration = new copado__ExtensionConfiguration__c(copado__Active__c = true, copado__ExtensionTool__c = 'sfdx-scanner', copado__ExtensionApplication__c = 'Test');
+
+            copado__ExtensionConfiguration__c extensionConfiguration = new copado__ExtensionConfiguration__c(copado__Active__c = true, copado__ExtensionTool__c = 'Manual Tests', copado__ExtensionApplication__c = 'Test');
             insert extensionConfiguration;
 
             copado__Test__c testItem2 = new copado__Test__c(Name = 'SFDX Codeanalyzer Test - QG Execution', copado__ExtensionConfiguration__c = extensionConfiguration.Id, copado__ReadyToRun__c = true);
             List<copado__Test__c> tests = new List<copado__Test__c>{testItem2};
             insert tests;
-            
+
             copado__Result__c qGResult = new copado__Result__c(copado__Job_Type__c = 'sfdx-scanner', copado__Status__c = 'Not Started');
             List<copado__Result__c> pmdTestResults = new List<copado__Result__c>{qGResult};
             insert pmdTestResults;
-      
+
 
             copado__JobTemplate__c template = new copado__JobTemplate__c(Name = 'Run SFDX Codeanalyzer QIF', copado__Version__c = 1);
             insert template;
-        
+
             copado__JobExecution__c execution2 = new copado__JobExecution__c(
                 copado__Template__c = template.Id,
                 copado__DataJson__c = '{"resultId" : "'+ qGResult.Id +'"}'
