@@ -12,7 +12,7 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 * Install Copado v20.0 or higher
 * Install Copado Quality Tools extension v1.14 or higher
 * Install Copado DX Extension v3.3 or higher
-* Install the [latest version of Copado SFDX Analyzer](https://login.salesforce.com/packaging/installPackage.apexp?p0=04t8Z000000UeXNQA0).
+* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange.
 
 ## Picklist Values
 
