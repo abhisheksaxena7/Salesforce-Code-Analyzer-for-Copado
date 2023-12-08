@@ -1,0 +1,21 @@
+{
+  "name": "Run SFDX Code Analyzer DFA QIF",
+  "apiname": "Run_CodeAnalyzer_DFA_QIF",
+  "imagename": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v1.1",
+  "type": "Custom",
+  "size": "S",
+  "parameters": [
+    {
+      "name": "git_json",
+      "defaultValue": "{$Context.Repository.Credential}"
+    },
+    {
+      "name": "branchesAndFileIdJson",
+      "defaultValue": "{$Job.PrevStep.ResultDataJson__c}"
+    },
+    {
+      "name": "severityThreshold",
+      "defaultValue": "2"
+    }
+  ]
+}
