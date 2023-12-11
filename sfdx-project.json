@@ -4,17 +4,17 @@
       "path": "./code-analyzer",
       "default": true,
       "package": "CopadoSFDXAnalyzer",
-      "versionName": "ver 0.1",
-      "versionNumber": "0.1.0.NEXT",
+      "versionName": "ver 2.0",
+      "versionNumber": "2.0.0.NEXT",
       "dependencies": [
         {
-          "package": "copadoDeployer@20.0.0.0"
+          "package": "copadoDeployer@21.4"
         },
         {
-          "package": "copadoDX@3.3"
+          "package": "copadoDX@4.19"
         },
         {
-          "package": "copadoQIF@1.14"
+          "package": "copadoQIF@1.42"
         }
       ]
     }
@@ -25,9 +25,9 @@
   "sourceApiVersion": "55.0",
   "packageAliases": {
     "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
-    "copadoDeployer@20.0.0.0": "04t5p000000Xdf2AAC",
-    "copadoDX@3.3": "04t5p000000YGr1AAG",
-    "copadoQIF@1.14": "04t5p000000YGrzAAG",
+    "copadoDeployer@21.4": "04t5p000001E97y",
+    "copadoDX@4.19": "04tP7000000057lIAA",
+    "copadoQIF@1.42": "04tP700000002EjIAI",
     "CopadoSFDXAnalyzer@0.1.0-1": "04t8Z000000UeXNQA0",
     "CopadoSFDXAnalyzer@0.1.0-3": "04t8Z000000BooFQAS"
   }
