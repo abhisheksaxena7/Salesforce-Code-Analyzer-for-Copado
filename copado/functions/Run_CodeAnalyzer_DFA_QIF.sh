@@ -11,7 +11,7 @@ echo "param branchesAndFileIdJson =  $branchesAndFileIdJson"
 echo "param originBranch = $originBranch"
 echo "param BRANCH = $BRANCH"
 
-copado -p "cloning repo..."
+copado -p "Cloning repo..."
 copado-git-get $destinationBranch
 copado-git-get $BRANCH
 
@@ -20,18 +20,17 @@ copado -p "Generating Diff between the Source and Destination branches..."
 mkdir changed-sources
 sfdx sgd:source:delta --to "HEAD" --from "origin/$destinationBranch" --output changed-sources/ --generate-delta --source .
 echo "Here's the files that have been changes in this US"
-cat changed-sources/package/package.xml 
-echo
+cat changed-sources/package/package.xml
 
 ################ Run SFDX Scanner only on Changed Metadata  ###############
 #TODO change html format with sarif, once the sarif viewer is generic enough
-copado -p "running sfdx scanner:dfa..."
+copado -p "Running sfdx scanner:dfa..."
 exitCode=0
-sfdx scanner:run:dfa --format html --projectdir "./changed-sources/"  --target "./changed-sources/**/*.*" --severity-threshold $severityThreshold --outfile ./result-dfa.html || exitCode=$?
+sfdx scanner:run:dfa --format json --projectdir "./changed-sources/"  --target "./changed-sources/**/*.*" --severity-threshold $severityThreshold --outfile ./output.json || exitCode=$?
 
 ############ Attach Results to the Function results record  ####################
-if [ -f "result-dfa.html" ]; then
-    copado -u result-dfa.html
+if [ -f "output.json" ]; then
+    copado -u output.json
 fi
 
 echo "sfdx scanner scan completed. exit code: $exitCode"

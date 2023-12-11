@@ -17,8 +17,8 @@
           "copado__copadoQuality__Requires_Sync__c": false,
           "CurrencyIsoCode": "USD",
           "Id": "a0fHs00000QnXCqIAN",
-          "LastReferencedDate": "2023-12-08T20:29:01.000+0000",
-          "LastViewedDate": "2023-12-08T20:29:01.000+0000",
+          "LastReferencedDate": "2023-12-08T21:27:35.000+0000",
+          "LastViewedDate": "2023-12-08T21:27:35.000+0000",
           "Name": "SFDX Scanner Config"
         },
         {
@@ -56,14 +56,14 @@
           "copado__Image_Name__c": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v1.2",
           "copado__Options__c": "[ ]",
           "copado__Parameters__c": "[ {\n  \"name\" : \"git_json\",\n  \"defaultValue\" : \"{$Context.Repository.Credential}\"\n}, {\n  \"name\" : \"severityThreshold\",\n  \"defaultValue\" : \"2\"\n}, {\n  \"name\" : \"engine\",\n  \"defaultValue\" : \"eslint-lwc,pmd,cpd,retire-js\"\n}, {\n  \"name\" : \"branchesAndFileIdJson\",\n  \"defaultValue\" : \"{$Context.Apex.copadoQuality.RetrieveBranchesAndFileIdForPmdScan}\"\n} ]",
-          "copado__Script__c": "########## Get Source and Destination Branch names and Checkout Repository #############\ncopado -p \"Reading parameters...\"\noriginBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)\nBRANCH=\"$originBranch\"\ndestinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)\n\necho \"param originBranch = $originBranch\"\necho \"param destinationBranch = $destinationBranch\"\n\ncopado -p \"cloning repo...\"\ncopado-git-get $destinationBranch\ncopado-git-get $BRANCH\n\n########### Create delta packages for new, modified or deleted metadata  ############\ncopado -p \"Generating Diff between the Source and Destination branches...\"\nmkdir changed-sources\nsfdx sgd:source:delta --to \"HEAD\" --from \"origin/$destinationBranch\" --output changed-sources/ --generate-delta --source .\necho \"Here's the files that have been changes in this US\"\ncat changed-sources/package/package.xml \n\n################ Run SFDX Scanner only on Changed Metadata  ###############\n#TODO change html format with sarif, once the sarif viewer is generic enough\ncopado -p \"running sfdx scanner...\"\nexitCode=0\nsfdx scanner:run --format html --target \"./changed-sources/**/*.*\" --engine $engine --severity-threshold $severityThreshold --outfile ./result.html || exitCode=$?\n\n############ Attach Results to the Function results record  ####################\ncopado -p \"uploading results...\"\nif [ -f \"result.html\" ]; then\n    copado -u result.html\nfi\n\necho \"sfdx scanner scan completed. exit code: $exitCode\"\nexit $exitCode",
+          "copado__Script__c": "########## Get Source and Destination Branch names and Checkout Repository #############\ncopado -p \"Reading parameters...\"\noriginBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)\nBRANCH=\"$originBranch\"\ndestinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)\n\necho \"param originBranch = $originBranch\"\necho \"param destinationBranch = $destinationBranch\"\n\ncopado -p \"Cloning repo...\"\ncopado-git-get $destinationBranch\ncopado-git-get $BRANCH\n\n########### Create delta packages for new, modified or deleted metadata  ############\ncopado -p \"Generating Diff between the Source and Destination branches...\"\nmkdir changed-sources\nsfdx sgd:source:delta --to \"HEAD\" --from \"origin/$destinationBranch\" --output changed-sources/ --generate-delta --source .\necho \"Here's the files that have been changes in this US\"\ncat changed-sources/package/package.xml \n\n################ Run SFDX Scanner only on Changed Metadata  ###############\n#TODO change html format with sarif, once the sarif viewer is generic enough\ncopado -p \"Running sfdx scanner...\"\nexitCode=0\nsfdx scanner:run --format json --target \"./changed-sources/**/*.*\" --engine $engine --severity-threshold $severityThreshold --outfile ./output.json || exitCode=$?\n\n############ Attach Results to the Function results record  ####################\ncopado -p \"Uploading results...\"\nif [ -f \"output.json\" ]; then\n    copado -u output.json\nfi\n\necho \"Sfdx scanner scan completed. exit code: $exitCode\"\nexit $exitCode",
           "copado__Type__c": "Custom",
           "copado__Version__c": "1",
           "copado__Worker_Size__c": "S",
           "CurrencyIsoCode": "USD",
           "Id": "a0lHs00000DJe6wIAD",
-          "LastReferencedDate": "2023-12-08T20:21:37.000+0000",
-          "LastViewedDate": "2023-12-08T20:21:37.000+0000",
+          "LastReferencedDate": "2023-12-11T19:30:41.000+0000",
+          "LastViewedDate": "2023-12-11T19:30:41.000+0000",
           "Name": "Run SFDX Code Analyzer QIF"
         },
         {
@@ -78,14 +78,14 @@
           "copado__Image_Name__c": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v1.2",
           "copado__Options__c": "[ ]",
           "copado__Parameters__c": "[ {\n  \"name\" : \"git_json\",\n  \"defaultValue\" : \"{$Context.Repository.Credential}\"\n}, {\n  \"name\" : \"branchesAndFileIdJson\",\n  \"defaultValue\" : \"{$Context.Apex.copadoQuality.RetrieveBranchesAndFileIdForPmdScan}\"\n}, {\n  \"name\" : \"severityThreshold\",\n  \"defaultValue\" : \"2\"\n} ]",
-          "copado__Script__c": "########## Get Source and Destination Branch names and Checkout Repository #############\ncopado -p \"Reading parameters...\"\noriginBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)\nBRANCH=\"$originBranch\"\ndestinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)\n\necho \"param branchesAndFileIdJson =  $branchesAndFileIdJson\"\necho \"param originBranch = $originBranch\"\necho \"param BRANCH = $BRANCH\"\n\ncopado -p \"cloning repo...\"\ncopado-git-get $destinationBranch\ncopado-git-get $BRANCH\n\n########### Create delta packages for new, modified or deleted metadata  ############\ncopado -p \"Generating Diff between the Source and Destination branches...\"\nmkdir changed-sources\nsfdx sgd:source:delta --to \"HEAD\" --from \"origin/$destinationBranch\" --output changed-sources/ --generate-delta --source .\necho \"Here's the files that have been changes in this US\"\ncat changed-sources/package/package.xml \n\n################ Run SFDX Scanner only on Changed Metadata  ###############\n#TODO change html format with sarif, once the sarif viewer is generic enough\ncopado -p \"running sfdx scanner:dfa...\"\nexitCode=0\nsfdx scanner:run:dfa --format html --projectdir \"./changed-sources/\"  --target \"./changed-sources/**/*.*\" --severity-threshold $severityThreshold --outfile ./result-dfa.html || exitCode=$?\n\n############ Attach Results to the Function results record  ####################\nif [ -f \"result-dfa.html\" ]; then\n    copado -u result-dfa.html\nfi\n\necho \"sfdx scanner scan completed. exit code: $exitCode\"\nexit $exitCode",
+          "copado__Script__c": "########## Get Source and Destination Branch names and Checkout Repository #############\ncopado -p \"Reading parameters...\"\noriginBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)\nBRANCH=\"$originBranch\"\ndestinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)\n\necho \"param branchesAndFileIdJson =  $branchesAndFileIdJson\"\necho \"param originBranch = $originBranch\"\necho \"param BRANCH = $BRANCH\"\n\ncopado -p \"Cloning repo...\"\ncopado-git-get $destinationBranch\ncopado-git-get $BRANCH\n\n########### Create delta packages for new, modified or deleted metadata  ############\ncopado -p \"Generating Diff between the Source and Destination branches...\"\nmkdir changed-sources\nsfdx sgd:source:delta --to \"HEAD\" --from \"origin/$destinationBranch\" --output changed-sources/ --generate-delta --source .\necho \"Here's the files that have been changes in this US\"\ncat changed-sources/package/package.xml \n\n################ Run SFDX Scanner only on Changed Metadata  ###############\n#TODO change html format with sarif, once the sarif viewer is generic enough\ncopado -p \"Running sfdx scanner:dfa...\"\nexitCode=0\nsfdx scanner:run:dfa --format json --projectdir \"./changed-sources/\"  --target \"./changed-sources/**/*.*\" --severity-threshold $severityThreshold --outfile ./output.json || exitCode=$?\n\n############ Attach Results to the Function results record  ####################\nif [ -f \"output.json\" ]; then\n    copado -u output.json\nfi\n\necho \"sfdx scanner scan completed. exit code: $exitCode\"\nexit $exitCode",
           "copado__Type__c": "Custom",
           "copado__Version__c": "1",
           "copado__Worker_Size__c": "S",
           "CurrencyIsoCode": "USD",
           "Id": "a0lHs00000DJe6xIAD",
-          "LastReferencedDate": "2023-12-08T20:26:34.000+0000",
-          "LastViewedDate": "2023-12-08T20:26:34.000+0000",
+          "LastReferencedDate": "2023-12-11T19:31:23.000+0000",
+          "LastViewedDate": "2023-12-11T19:31:23.000+0000",
           "Name": "Run SFDX Code Analyzer DFA QIF"
         }
       ],
@@ -103,8 +103,8 @@
           "copado__Version__c": 1,
           "CurrencyIsoCode": "USD",
           "Id": "a0uHs00000Z7M8XIAV",
-          "LastReferencedDate": "2023-12-08T20:20:24.000+0000",
-          "LastViewedDate": "2023-12-08T20:20:24.000+0000",
+          "LastReferencedDate": "2023-12-11T19:31:56.000+0000",
+          "LastViewedDate": "2023-12-11T19:31:56.000+0000",
           "Name": "Run SFDX Codeanalyzer QIF"
         },
         {
@@ -117,8 +117,8 @@
           "copado__Version__c": 1,
           "CurrencyIsoCode": "USD",
           "Id": "a0uHs00000Z7M8YIAV",
-          "LastReferencedDate": "2023-12-08T20:05:23.000+0000",
-          "LastViewedDate": "2023-12-08T20:05:23.000+0000",
+          "LastReferencedDate": "2023-12-11T19:31:54.000+0000",
+          "LastViewedDate": "2023-12-11T19:31:54.000+0000",
           "Name": "Run SFDX Codeanalyzer DFA QIF"
         }
       ],
@@ -137,6 +137,7 @@
           "copado__IsSkipped__c": false,
           "copado__JobTemplate__c": "a0uHs00000Z7M8XIAV",
           "copado__Order__c": 4,
+          "copado__Result_Viewer_Component__c": "c:resultTable",
           "copado__Type__c": "Function",
           "CurrencyIsoCode": "USD",
           "Id": "a0tHs00000NvWPOIA3",
@@ -153,6 +154,7 @@
           "copado__IsSkipped__c": false,
           "copado__JobTemplate__c": "a0uHs00000Z7M8YIAV",
           "copado__Order__c": 4,
+          "copado__Result_Viewer_Component__c": "c:resultTable",
           "copado__Type__c": "Function",
           "CurrencyIsoCode": "USD",
           "Id": "a0tHs00000NvWPUIA3",
