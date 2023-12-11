@@ -1,6 +1,9 @@
 {
   "packageDirectories": [
     {
+      "path": "./test-data/"
+    },
+    {
       "path": "./code-analyzer",
       "default": true,
       "package": "CopadoSFDXAnalyzer",
