@@ -8,6 +8,20 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 
 # Installing the Extension
 
+## v2.x Release Notes
+
+- Results are now shown in a LWC Component on the Result Modal, no need to download the HTML file to review errors.
+
+- Removed previously used Flows and Apex Classes from Job Templates to make the extension lightweight.
+
+## Upgrading from 1.x version to 2.x version
+
+- The new 2.x version relies on some new capabalities by the Copado Deployer and Quality tools package, hence minimum requirements have changed. Please upgrade those packages to the required version as listed in the [Pre-requisites](#pre-requisites) section
+
+- This new veriosn removes a lot of dependencies on old flows and apex classes which could cause issue while upgrading. Thus, first uninstall the previous version of SFDX Scanner first, before installing this new version.
+
+- Upgrading to a new version will overwrite any custom values that were set on the `severityThreshold` and `engine` parameter. Please save them before upgrading and reset after the upgrade.
+
 ## Pre-Requisites
 * Install Copado v21.14 or higher
 * Install Copado Quality Tools extension v1.42 or higher
