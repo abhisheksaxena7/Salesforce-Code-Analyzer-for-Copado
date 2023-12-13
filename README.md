@@ -9,24 +9,26 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 # Installing the Extension
 
 ## Pre-Requisites
-* Install Copado v20.0 or higher
-* Install Copado Quality Tools extension v1.14 or higher
-* Install Copado DX Extension v3.3 or higher
-* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange.
+* Install Copado v21.14 or higher
+* Install Copado Quality Tools extension v1.42 or higher
+* Install Copado DX Extension v4.19 or higher
+* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange or check in [sfdx-project.json](./sfdx-project.json).
 
 ## Picklist Values
 
 * Create the Following Picklist values
-* Object: Extension Configuration, Field: Extension Tool, Value: `sfdx-scanner`
-* Object: Quality Gate Rule Condition, Field: Platform, Value: SFDX
-* Picklist Value Set: Copado Test Tool, Value: `sfdx-scanner`
+* Object: Extension Configuration, Field: Extension Tool, Value: `sfdx-scanner` & `sfdx-scanner-dfa`
+* Picklist Value Set: Copado Test Tool, Value: `sfdx-scanner` & `sfdx-scanner-dfa`
 
 ## Create The Functions and Job Templates
-Navigate to the “Copado Extensions” tab, select “Checkmarx” and press the button “Generate Extension Records”.
+Navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
 
 ![Generate Extension Records](./images/generate-extension-records.png)
 
 ## Configure Function Parameters
+
+![Function Parameters](./images/function-parameters.png)
+
 * `severityThreshold` - Throws an error when violations are found with equal or greater severity than the provided value. Normalized severity values are: 1 (high), 2 (moderate), and 3 (low). Exit code is the most severe violation. The default OOB value set is `2`. Feel free to edit it as per your project needs.
 
 * `engine` - Specifies one or more engines to run. Submit multiple values as a comma-separated list. Valid values need to be from either of these `eslint,eslint-lwc,eslint-typescript,pmd,retire-js,cpd`.
@@ -45,10 +47,28 @@ Once saved, press the button “Activate” on the Quality Gate Rule record.
 
 ![Quality Gate Rule Condition](./images/quality-gate-rule-condition.png)
 
-**You are all set.**
+**Repeat these steps to create a QG and QGRC for `SFDX-Scanner-DFA` as well.**
+
+**After that you are all set.**
 
 To test the configuration, just perform a commit which contains ApexClass/LWC/AuraBundle on a user story on a SFDX platform Pipeline, and the Commit Action will enforce `SFDX Analyzer` after every commit.
 
-Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
+Here's some [test-data](./test-data/) that can be used to test both the Quality Gates
 
-To inspect your code, Code Analyzer uses multiple code analysis engines, including PMD, ESLint, RetireJS, and Salesforce Graph Engine. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis.
+## Demo Screenshots
+
+### Successful run with no violations and it's result![Successful Commit](./images/successful-commit.png)
+![No Violations](./images/no-violations.png)
+
+### Run with Violations
+![Failed Commit](./images/failed-commit-sfdx.png)
+![Violations Modal](./images/violations-modal-sfdx.png)
+
+The Result record can be further opened to read the violations better, as well as wrap text and search to filter violations.
+
+![Result Record](./images/violations-result-sfdx.png)
+
+![Wrapped Text](./images/violations-wrapped-search-sfdx.png)
+
+### Run with Violations for DFA
+![Result Record DFA](./images/violations-modal-dfa.png)
