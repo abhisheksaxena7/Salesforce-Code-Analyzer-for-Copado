@@ -18,8 +18,6 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 
 - The new 2.x version relies on some new capabalities by the Copado Deployer and Quality tools package, hence minimum requirements have changed. Please upgrade those packages to the required version as listed in the [Pre-requisites](#pre-requisites) section
 
-- This new veriosn removes a lot of dependencies on old flows and apex classes which could cause issue while upgrading. Thus, first uninstall the previous version of SFDX Scanner first, before installing this new version.
-
 - Upgrading to a new version will overwrite any custom values that were set on the `severityThreshold` and `engine` parameter. Please save them before upgrading and reset after the upgrade.
 
 ## Pre-Requisites
