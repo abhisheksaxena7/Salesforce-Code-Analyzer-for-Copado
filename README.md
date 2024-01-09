@@ -20,7 +20,7 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 
 - Upgrading to a new version will overwrite any custom values that were set on the `severityThreshold` and `engine` parameter. Please save them before upgrading and reset after the upgrade.
 
-- After upgarding, navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
+- After upgrading, navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
 
 ## Pre-Requisites
 * Install Copado v21.14 or higher
