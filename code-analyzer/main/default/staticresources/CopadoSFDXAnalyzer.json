@@ -45,6 +45,7 @@
             "type": "copado__Function__c",
             "url": "/services/data/v59.0/sobjects/copado__Function__c/a0lHs00000DJe6wIAD"
           },
+          "copado__Callback_Type__c": null,
           "copado__API_Name__c": "Run_CodeAnalyzer_QIF",
           "copado__Description__c": "For the Quality Gate Engine only",
           "copado__Image_Name__c": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v1.2",
@@ -64,6 +65,7 @@
             "type": "copado__Function__c",
             "url": "/services/data/v59.0/sobjects/copado__Function__c/a0lHs00000DJe6xIAD"
           },
+          "copado__Callback_Type__c": null,
           "copado__API_Name__c": "Run_CodeAnalyzer_DFA_QIF",
           "copado__Description__c": "For the Quality Gate Engine only",
           "copado__Image_Name__c": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v1.2",
