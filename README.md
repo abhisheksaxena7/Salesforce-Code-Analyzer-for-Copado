@@ -46,7 +46,7 @@ Navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and
 * `severityThreshold` - Throws an error when violations are found with equal or greater severity than the provided value. Normalized severity values are: 1 (high), 2 (moderate), and 3 (low). Exit code is the most severe violation. The default OOB value set is `2`. Feel free to edit it as per your project needs.
 
 * `engine` - Specifies one or more engines to run. Submit multiple values as a comma-separated list. Valid values need to be from either of these `eslint,eslint-lwc,eslint-typescript,pmd,retire-js,cpd`.
-The default OOB value is set to `eslint-lwc,pmd,cpd,retire-js`. Feel free to edit it as per your project needs.
+The default OOB value is set to `eslint-lwc,pmd,cpd,retire-js,pmd-appexchange`. Feel free to edit it as per your project needs.
 
 ## Configure the Quality Gate
 
