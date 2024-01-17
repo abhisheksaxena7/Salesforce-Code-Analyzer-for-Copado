@@ -10,7 +10,7 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 
 ## v2.x Release Notes
 
-- Updated to support SFDX-Analyzer v3.20.0, through which we now support the new `PMD-Appexchange` engine out of the box. [Please review official documentation here](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/architecture/pmd-engine/)
+- Updated to support SFDX-Analyzer v3.20.0, through which Copado SFDX Analyzer now support the new `PMD-Appexchange` engine out of the box. [Please review official documentation here](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/architecture/pmd-engine/). This is different from the standard PMD rules that run with regular PMD for Salesforce and introduces 32 new PMD rules specific to Security Review. The rules included in pmd-appexchange may help AppExchange partners prepare their managed packages for security review. This new, optional engine contains rules that help you identify common security review failure points, and fix them before you submit your solution for security review.
 
   - ### How do I use pmd-appexchange to prepare my solution for an AppExchange security review?
 
