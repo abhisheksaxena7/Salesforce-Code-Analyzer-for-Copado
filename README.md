@@ -4,11 +4,19 @@ With this project, you can use Code Analyzer as a quality gate within Copado, an
 
 Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
 
-To inspect your code, Code Analyzer uses multiple code analysis engines, including PMD, ESLint, RetireJS, and Salesforce Graph Engine. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis. Please read more [here.](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/faq/)
+To inspect your code, Code Analyzer uses multiple code analysis engines, including `PMD, PMD-Appexchange, PMD Copy Paste Detector(CPD), ESLint, RetireJS, and Salesforce Graph Engine`. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis. Please read more [here.](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/faq/)
 
 # Installing the Extension
 
 ## v2.x Release Notes
+
+- Updated to support SFDX-Analyzer v3.20.0, through which we now support the new `PMD-Appexchange` engine out of the box. [Please review official documentation here](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/architecture/pmd-engine/)
+
+  - ### How do I use pmd-appexchange to prepare my solution for an AppExchange security review?
+
+    In addition to the base PMD engine, Code Analyzer also includes a custom PMD variant, pmd-appexchange. The rules included in pmd-appexchange may help AppExchange partners prepare their managed packages for security review. This new, optional engine contains rules that help you identify common security review failure points, and fix them before you submit your solution. This will be enabled by default in v2.1.0+ of Copado SFDX Analyzer. You can verify this by going into `Job Templates > Run SFDX Codeanalyzer QIF > Steps > Run SFDX Code Analyzer > Engine`
+
+    ![Engines in Job Step](./images/engines-job-step.png)
 
 - Results are now shown in a LWC Component on the Result Modal, no need to download the HTML file to review errors.
 
@@ -26,7 +34,7 @@ To inspect your code, Code Analyzer uses multiple code analysis engines, includi
 * Install Copado v21.14 or higher
 * Install Copado Quality Tools extension v1.42 or higher
 * Install Copado DX Extension v4.19 or higher
-* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange or check in [sfdx-project.json](./sfdx-project.json).
+* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange.
 
 ## Picklist Values
 
