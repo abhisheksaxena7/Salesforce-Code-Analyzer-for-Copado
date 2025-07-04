@@ -59,17 +59,11 @@ The default OOB value is set to `eslint-lwc,pmd,cpd,retire-js,pmd-appexchange`. 
 ## Configure the Quality Gate
 
 ### Create the Quality Gate Rule
-Navigate to the Quality Gate Rules tab and create a new record as follows. Note that the Type field will be populated automatically upon save. The global value set Test Tool should have a value for `SFDX Scanner` as part of this package. It can be created manually if necessary.
+Navigate to the Quality Gate Rules tab and create a new record as follows. The global value set Test Tool should have a value for `SFDX Scanner` as part of this package. It can be created manually if necessary.
 
 ![Configure Quality Gate](./images/create-quality-gate-rule.png)
 
-### Create the Quality Gate Rule Condition
-Set the conditions so that it only applies to `Pipelines/Stages/Environments` with Platform = `SFDX`. This picklist value can be added manually if necessary.
-Once saved, press the button “Activate” on the Quality Gate Rule record.
-
-![Quality Gate Rule Condition](./images/quality-gate-rule-condition.png)
-
-**Repeat these steps to create a QG and QGRC for `SFDX-Scanner-DFA` as well.**
+**Repeat these steps to create a QG for `SFDX-Scanner-DFA` as well.**
 
 **After that you are all set.**
 
