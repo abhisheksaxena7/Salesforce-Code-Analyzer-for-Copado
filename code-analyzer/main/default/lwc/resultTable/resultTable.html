@@ -103,17 +103,54 @@
                         <!-- Filename Grouping -->
                         <template if:true={isFilenameGrouping}>
                             <lightning-accordion allow-multiple-sections-open>
-                                <template for:each={groupedViolationsArray} for:item="fileGroup">
+                                <template for:each={groupedByMetadataTypeArray} for:item="metaGroup">
                                     <lightning-accordion-section
-                                        key={fileGroup.key}
-                                        name={fileGroup.key}
-                                        label={fileGroup.label}>
-                                        <lightning-datatable
-                                            key-field="id"
-                                            data={fileGroup.violations}
-                                            columns={violationColumnsForDisplay}
-                                            hide-checkbox-column>
-                                        </lightning-datatable>
+                                        key={metaGroup.key}
+                                        name={metaGroup.key}
+                                        label={metaGroup.label}>
+                                        <lightning-accordion allow-multiple-sections-open>
+                                            <template for:each={metaGroup.files} for:item="fileGroup">
+                                                <lightning-accordion-section
+                                                    key={fileGroup.key}
+                                                    name={fileGroup.key}
+                                                    label={fileGroup.label}>
+                                                    <lightning-datatable
+                                                        key-field="id"
+                                                        data={fileGroup.violations}
+                                                        columns={violationColumnsForDisplay}
+                                                        hide-checkbox-column>
+                                                    </lightning-datatable>
+                                                </lightning-accordion-section>
+                                            </template>
+                                        </lightning-accordion>
+                                    </lightning-accordion-section>
+                                </template>
+                            </lightning-accordion>
+                        </template>
+
+                        <!-- Type/Filename Grouping -->
+                        <template if:true={isTypeFilenameGrouping}>
+                            <lightning-accordion allow-multiple-sections-open>
+                                <template for:each={groupedByMetadataTypeArray} for:item="metaGroup">
+                                    <lightning-accordion-section
+                                        key={metaGroup.key}
+                                        name={metaGroup.key}
+                                        label={metaGroup.label}>
+                                        <lightning-accordion allow-multiple-sections-open>
+                                            <template for:each={metaGroup.files} for:item="fileGroup">
+                                                <lightning-accordion-section
+                                                    key={fileGroup.key}
+                                                    name={fileGroup.key}
+                                                    label={fileGroup.label}>
+                                                    <lightning-datatable
+                                                        key-field="id"
+                                                        data={fileGroup.violations}
+                                                        columns={violationColumnsForDisplay}
+                                                        hide-checkbox-column>
+                                                    </lightning-datatable>
+                                                </lightning-accordion-section>
+                                            </template>
+                                        </lightning-accordion>
                                     </lightning-accordion-section>
                                 </template>
                             </lightning-accordion>

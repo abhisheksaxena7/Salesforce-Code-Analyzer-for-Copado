@@ -26,7 +26,7 @@ export default class ResultTable extends LightningElement {
     @track groupBy = 'engine'; // default grouping
     groupByOptions = [
         { label: 'Engine/Rule', value: 'engine' },
-        { label: 'Filename', value: 'filename' }
+        { label: 'Type/Filename', value: 'typefilename' }
     ];
 
     @wire(getRelatedListRecords, {
@@ -197,15 +197,14 @@ export default class ResultTable extends LightningElement {
     }
 
     get violationColumnsForDisplay() {
-        if (this.groupBy === 'filename') {
-            // Remove the file column if present
-            const columnsWithoutFile = this.violationColumns.filter(
-                col => col.fieldName !== 'file'
-            );
-            // Add Engine column at the start (or wherever you want)
+        if (this.groupBy === 'typefilename') {
+            // Show Engine, Severity, Rule, Line, and Message columns in this order
             return [
                 { label: 'Engine', fieldName: 'engine', type: 'text' },
-                ...columnsWithoutFile
+                { label: 'Rule', fieldName: 'rule', type: 'text' },
+                { label: 'Severity', fieldName: 'severity', type: 'text' },
+                { label: 'Line', fieldName: 'line', type: 'number' },
+                { label: 'Message', fieldName: 'message', type: 'text' }
             ];
         }
         return this.violationColumns;
@@ -373,17 +372,22 @@ export default class ResultTable extends LightningElement {
     }
 
     get groupedByMetadataTypeArray() {
-        if (!this.formattedJson) return [];
+        // Use filteredJson if present, otherwise formattedJson
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) return [];
+        const filterSeverity = this.selectedSeverity;
         const metaTypeMap = {};
 
-        this.formattedJson.forEach(v => {
+        data.forEach(v => {
+            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
             let metaType = 'Unknown';
             let fileKey = v.file || 'Unknown File';
             if (v.file) {
-                const parts = v.file.split('/');
-                if (parts.length >= 3) {
-                    metaType = parts[2]; // Always use the 3rd segment as metadata type
-                    fileKey = parts.slice(3).join('/') || parts[parts.length - 1];
+                // Find the segment after 'main/default/'
+                const match = v.file.match(/main\/default\/([^\/]+)\/(.+)/);
+                if (match) {
+                    metaType = match[1];
+                    fileKey = match[2];
                 }
             }
             if (!metaTypeMap[metaType]) {
@@ -395,20 +399,28 @@ export default class ResultTable extends LightningElement {
             metaTypeMap[metaType][fileKey].push(v);
         });
 
-        // Convert to array structure for template
-        return Object.keys(metaTypeMap).map(metaType => ({
-            key: metaType,
-            label: metaType,
-            files: Object.keys(metaTypeMap[metaType]).map(file => ({
+        // Convert to array structure for template, with counts in labels
+        return Object.keys(metaTypeMap).map(metaType => {
+            const filesArr = Object.keys(metaTypeMap[metaType]).map(file => ({
                 key: file,
-                label: file,
+                label: `${file} (${metaTypeMap[metaType][file].length})`,
                 violations: metaTypeMap[metaType][file]
-            }))
-        }));
+            }));
+            const totalViolations = filesArr.reduce((sum, f) => sum + f.violations.length, 0);
+            return {
+                key: metaType,
+                label: `${metaType} (${totalViolations})`,
+                files: filesArr
+            };
+        });
     }
 
     get isFilenameGrouping() {
         return this.groupBy === 'filename';
+    }
+
+    get isTypeFilenameGrouping() {
+        return this.groupBy === 'typefilename';
     }
 
     get groupedViolationsArray() {
@@ -416,9 +428,12 @@ export default class ResultTable extends LightningElement {
         const data = this.filteredJson || this.formattedJson;
         if (this.groupBy === 'engine') {
             return this.groupByEngineAndRuleArray(data);
-        } else {
-            return this.groupByFilenameArray(data);
+        } else if (this.groupBy === 'typefilename') {
+            // For type/filename grouping
+            // Return: [{ key, label, files: [{ key, label, violations }] }]
+            return this.groupedByMetadataTypeArray;
         }
+        return [];
     }
 
     // Example for filename grouping
@@ -444,10 +459,8 @@ export default class ResultTable extends LightningElement {
     // For engine/rule grouping, adapt your existing logic to return an array of engines, each with a rules array
     // Example:
     groupByEngineAndRuleArray(violations) {
-        // ... your logic to group by engine and rule ...
-        // Return: [{ key, label, description, rules: [{ key, label, violations, ... }] }]
-        const engines = {};
         const filterSeverity = this.selectedSeverity;
+        const engines = {};
         violations.forEach(v => {
             if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
             if (!engines[v.engine]) {
@@ -471,9 +484,10 @@ export default class ResultTable extends LightningElement {
             description: this.engineDescriptions[engineObj.engine] || '',
             rules: Object.values(engineObj.rules).map(ruleObj => ({
                 key: ruleObj.rule,
-                label: ruleObj.rule,
+                label: `${ruleObj.rule} (${ruleObj.violations.length})`,
                 severity: ruleObj.severity,
                 tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
+                resource: ruleObj.resource,
                 violations: ruleObj.violations
             }))
         }));
