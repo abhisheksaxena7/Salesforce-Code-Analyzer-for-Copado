@@ -19,6 +19,7 @@ export default class ResultTable extends LightningElement {
     result = {};
     scriptsLoaded = false;
     formattedJson;
+    @track filteredJson = null;
 
     @wire(getRelatedListRecords, {
         parentRecordId: '$recordId',
@@ -75,9 +76,10 @@ export default class ResultTable extends LightningElement {
     }
 
     get groupedByEngine() {
-        if (!this.formattedJson) return [];
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) return [];
         const engines = {};
-        this.formattedJson.forEach(v => {
+        data.forEach(v => {
             if (!engines[v.engine]) {
                 engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
             }
@@ -224,12 +226,12 @@ export default class ResultTable extends LightningElement {
     }
 
     _clearSearch() {
-        this.relevantFormattedJson = this.formattedJson;
+        this.filteredJson = null;
     }
 
 
     _applySearch(searchTerm) {
-        this.relevantFormattedJson = this.formattedJson.filter((row) => {
+        this.filteredJson = this.formattedJson.filter((row) => {
             for (const key in row) {
                 const value = '' + row[key] || '';
                 if (value && value.toLowerCase()?.includes(searchTerm)) {
