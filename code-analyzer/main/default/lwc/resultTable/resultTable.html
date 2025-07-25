@@ -14,7 +14,8 @@
 
                                     <div class="slds-media__body">
                                         <h2 class="slds-card__header-title">
-                                            Result Report ({recordCount})
+                                            <strong>Total Violations:</strong>
+                                            <lightning-badge label={violationCounts.total} class="slds-theme_info slds-m-left_x-small"></lightning-badge>
                                         </h2>
                                     </div>
                                 </div>
@@ -31,12 +32,8 @@
                     </div>
 
                     <template if:true={violationCounts}>
-                        <lightning-card title="Violation Summary" class="slds-m-bottom_medium">
+                        <lightning-card class="slds-m-bottom_medium">
                             <div class="slds-p-horizontal_medium slds-p-vertical_small">
-                                <div class="slds-text-heading_small slds-m-bottom_x-small">
-                                    <strong>Total Violations:</strong>
-                                    <lightning-badge label={violationCounts.total} class="slds-theme_info slds-m-left_x-small"></lightning-badge>
-                                </div>
                                 <div class="slds-m-top_x-small">
                                     <template for:each={severityLevels} for:item="sev">
                                         <lightning-badge
