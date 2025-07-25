@@ -30,31 +30,41 @@
                         </lightning-layout>
                     </div>
 
-                    <template if:true={groupedByRule}>
+                    <template if:true={groupedByEngine}>
                         <lightning-accordion allow-multiple-sections-open>
-                            <template for:each={groupedByRule} for:item="group">
+                            <template for:each={groupedByEngine} for:item="engineGroup">
                                 <lightning-accordion-section
-                                    key={group.rule}
-                                    name={group.rule}
-                                    label={group.rule}>
-                                    <div>
-                                        <strong>Engine:</strong> {group.engine} <br/>
-                                        <strong>Severity:</strong> {group.severity} <br/>
-                                        <strong>Tags:</strong> <template for:each={group.tags} for:item="tag">
-                                            <span key={tag}>{tag}</span>
+                                    key={engineGroup.engine}
+                                    name={engineGroup.engine}
+                                    label={engineGroup.engine}>
+                                    <!-- Nested accordion for rules -->
+                                    <lightning-accordion allow-multiple-sections-open>
+                                        <template for:each={engineGroup.rules} for:item="ruleGroup">
+                                            <lightning-accordion-section
+                                                key={ruleGroup.rule}
+                                                name={ruleGroup.rule}
+                                                label={ruleGroup.rule}>
+                                                <div>
+                                                    <strong>Severity:</strong> {ruleGroup.severity} <br/>
+                                                    <strong>Tags:</strong>
+                                                    <template for:each={ruleGroup.tags} for:item="tag">
+                                                        <span key={tag}>{tag}</span>
+                                                    </template>
+                                                    <br/>
+                                                    <template if:true={ruleGroup.resource}>
+                                                        <a href={ruleGroup.resource} target="_blank">Rule Docs</a>
+                                                    </template>
+                                                </div>
+                                                <ul>
+                                                    <template for:each={ruleGroup.violations} for:item="v">
+                                                        <li key={v.id}>
+                                                            <strong>{v.file}:{v.line}</strong> - {v.message}
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </lightning-accordion-section>
                                         </template>
-                                        <br/>
-                                        <template if:true={group.resource}>
-                                            <a href={group.resource} target="_blank">Rule Docs</a>
-                                        </template>
-                                    </div>
-                                    <ul>
-                                        <template for:each={group.violations} for:item="v">
-                                            <li key={v.id}>
-                                                <strong>{v.file}:{v.line}</strong> - {v.message}
-                                            </li>
-                                        </template>
-                                    </ul>
+                                    </lightning-accordion>
                                 </lightning-accordion-section>
                             </template>
                         </lightning-accordion>

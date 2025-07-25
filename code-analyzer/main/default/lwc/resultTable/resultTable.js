@@ -74,6 +74,31 @@ export default class ResultTable extends LightningElement {
         return this.relevantFormattedJson?.length;
     }
 
+    get groupedByEngine() {
+        if (!this.formattedJson) return [];
+        const engines = {};
+        this.formattedJson.forEach(v => {
+            if (!engines[v.engine]) {
+                engines[v.engine] = { engine: v.engine, rules: {} };
+            }
+            if (!engines[v.engine].rules[v.rule]) {
+                engines[v.engine].rules[v.rule] = {
+                    rule: v.rule,
+                    severity: v.severity,
+                    tags: v.tags,
+                    resource: v.resource,
+                    violations: []
+                };
+            }
+            engines[v.engine].rules[v.rule].violations.push(v);
+        });
+        // Convert rules object to array for each engine
+        return Object.values(engines).map(engineObj => ({
+            engine: engineObj.engine,
+            rules: Object.values(engineObj.rules)
+        }));
+    }
+
     get groupedByRule() {
         if (!this.formattedJson) return [];
         const groups = {};
