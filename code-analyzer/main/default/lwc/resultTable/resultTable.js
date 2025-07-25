@@ -23,6 +23,12 @@ export default class ResultTable extends LightningElement {
     @track violationCounts = null;
     @track selectedSeverity = null;
 
+    @track groupBy = 'engine'; // default grouping
+    groupByOptions = [
+        { label: 'Engine/Rule', value: 'engine' },
+        { label: 'Filename', value: 'filename' }
+    ];
+
     @wire(getRelatedListRecords, {
         parentRecordId: '$recordId',
         relatedListId: 'ContentDocumentLinks',
@@ -190,6 +196,21 @@ export default class ResultTable extends LightningElement {
         ];
     }
 
+    get violationColumnsForDisplay() {
+        if (this.groupBy === 'filename') {
+            // Remove the file column if present
+            const columnsWithoutFile = this.violationColumns.filter(
+                col => col.fieldName !== 'file'
+            );
+            // Add Engine column at the start (or wherever you want)
+            return [
+                { label: 'Engine', fieldName: 'engine', type: 'text' },
+                ...columnsWithoutFile
+            ];
+        }
+        return this.violationColumns;
+    }
+
 
     get isTabular() {
         return (this.type === 'Table' && this.columns.length);
@@ -320,5 +341,145 @@ export default class ResultTable extends LightningElement {
                 };
             })
             .sort((a, b) => a.level - b.level);
+    }
+
+    handleGroupByChange(event) {
+        this.groupBy = event.detail.value;
+    }
+
+    get groupedViolations() {
+        if (this.groupBy === 'engine') {
+            return this.groupByEngineAndRule(this.formattedJson);
+        } else {
+            return this.groupByFilename(this.formattedJson);
+        }
+    }
+
+    groupByEngineAndRule(violations) {
+        // Your existing grouping logic
+    }
+
+    groupByFilename(violations) {
+        // New logic to group by filename
+        const grouped = {};
+        violations.forEach(v => {
+            const file = v.sinkFileName || v.file || 'Unknown File';
+            if (!grouped[file]) {
+                grouped[file] = [];
+            }
+            grouped[file].push(v);
+        });
+        return grouped;
+    }
+
+    get groupedByMetadataTypeArray() {
+        if (!this.formattedJson) return [];
+        const metaTypeMap = {};
+
+        this.formattedJson.forEach(v => {
+            let metaType = 'Unknown';
+            let fileKey = v.file || 'Unknown File';
+            if (v.file) {
+                const parts = v.file.split('/');
+                if (parts.length >= 3) {
+                    metaType = parts[2]; // Always use the 3rd segment as metadata type
+                    fileKey = parts.slice(3).join('/') || parts[parts.length - 1];
+                }
+            }
+            if (!metaTypeMap[metaType]) {
+                metaTypeMap[metaType] = {};
+            }
+            if (!metaTypeMap[metaType][fileKey]) {
+                metaTypeMap[metaType][fileKey] = [];
+            }
+            metaTypeMap[metaType][fileKey].push(v);
+        });
+
+        // Convert to array structure for template
+        return Object.keys(metaTypeMap).map(metaType => ({
+            key: metaType,
+            label: metaType,
+            files: Object.keys(metaTypeMap[metaType]).map(file => ({
+                key: file,
+                label: file,
+                violations: metaTypeMap[metaType][file]
+            }))
+        }));
+    }
+
+    get isFilenameGrouping() {
+        return this.groupBy === 'filename';
+    }
+
+    get groupedViolationsArray() {
+        // Use filteredJson if present, otherwise formattedJson
+        const data = this.filteredJson || this.formattedJson;
+        if (this.groupBy === 'engine') {
+            return this.groupByEngineAndRuleArray(data);
+        } else {
+            return this.groupByFilenameArray(data);
+        }
+    }
+
+    // Example for filename grouping
+    groupByFilenameArray(violations) {
+        if (!violations) return [];
+        const filterSeverity = this.selectedSeverity;
+        const grouped = {};
+        violations.forEach(v => {
+            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
+            const file = v.sinkFileName || v.file || 'Unknown File';
+            if (!grouped[file]) {
+                grouped[file] = [];
+            }
+            grouped[file].push(v);
+        });
+        return Object.keys(grouped).map(file => ({
+            key: file,
+            label: file,
+            violations: grouped[file]
+        }));
+    }
+
+    // For engine/rule grouping, adapt your existing logic to return an array of engines, each with a rules array
+    // Example:
+    groupByEngineAndRuleArray(violations) {
+        // ... your logic to group by engine and rule ...
+        // Return: [{ key, label, description, rules: [{ key, label, violations, ... }] }]
+        const engines = {};
+        const filterSeverity = this.selectedSeverity;
+        violations.forEach(v => {
+            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
+            if (!engines[v.engine]) {
+                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
+            }
+            if (!engines[v.engine].rules[v.rule]) {
+                engines[v.engine].rules[v.rule] = {
+                    rule: v.rule,
+                    severity: v.severity,
+                    tags: v.tags,
+                    resource: v.resource,
+                    violations: []
+                };
+            }
+            engines[v.engine].rules[v.rule].violations.push(v);
+            engines[v.engine].violationCount += 1;
+        });
+        return Object.values(engines).map(engineObj => ({
+            key: engineObj.engine,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
+            description: this.engineDescriptions[engineObj.engine] || '',
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                key: ruleObj.rule,
+                label: ruleObj.rule,
+                severity: ruleObj.severity,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
+                violations: ruleObj.violations
+            }))
+        }));
+    }
+
+    get isEngineGrouping() {
+        return this.groupBy === 'engine';
     }
 }
