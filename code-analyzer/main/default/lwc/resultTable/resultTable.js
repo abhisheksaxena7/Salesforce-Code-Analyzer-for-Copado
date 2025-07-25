@@ -110,28 +110,25 @@ export default class ResultTable extends LightningElement {
 
     // Transformation function
     transformJson(parsedJson) {
-        const transformedData = [];
-
-        parsedJson.forEach((file) => {
-            if (file.violations && Array.isArray(file.violations)) {
-                file.violations.forEach((violation) => {
-                    const transformedViolation = {
-                        engine: file.engine,
-                        fileName: file.fileName,
-                        line: violation.line,
-                        ruleName: violation.ruleName,
-                        category: violation.category,
-                        url: violation.url,
-                        message: violation.message,
-                        normalizedSeverity: violation.normalizedSeverity
-                    };
-
-                    transformedData.push(transformedViolation);
-                });
-            }
-        });
-
-        return transformedData;
+        // Only handle v5output.json: top-level object with 'violations' array
+        if (parsedJson.violations && Array.isArray(parsedJson.violations)) {
+            return parsedJson.violations.map((violation) => {
+                // Use primary location for file/line info
+                const primaryLoc = violation.locations?.[violation.primaryLocationIndex] || violation.locations?.[0] || {};
+                return {
+                    engine: violation.engine,
+                    fileName: primaryLoc.file,
+                    line: primaryLoc.startLine,
+                    ruleName: violation.rule,
+                    category: violation.tags?.join(', '),
+                    url: (violation.resources && violation.resources[0]) || '',
+                    message: violation.message,
+                    normalizedSeverity: violation.severity
+                };
+            });
+        }
+        // fallback
+        return [];
     }
 
     getFormattedData(serializedJson) {
