@@ -34,23 +34,27 @@
                     <template if:true={violationCounts}>
                         <lightning-card class="slds-m-bottom_medium">
                             <div class="slds-p-horizontal_medium slds-p-vertical_small">
-                                <div class="slds-m-top_x-small">
+                                <div class="slds-m-top_x-small slds-button-group" role="group">
                                     <template for:each={severityLevels} for:item="sev">
-                                        <lightning-badge
+                                        <lightning-button
                                             key={sev.level}
                                             label={sev.label}
-                                            class={sev.badgeClass}
-                                            style="margin-right: 0.5rem;">
-                                        </lightning-badge>
+                                            title={sev.label}
+                                            data-severity={sev.level}
+                                            variant={sev.buttonVariant}
+                                            class={sev.buttonClass}
+                                            onclick={handleSeverityClick}
+                                            style="margin-right: 0.5rem;"
+                                        ></lightning-button>
                                     </template>
                                 </div>
                             </div>
                         </lightning-card>
                     </template>
 
-                    <template if:true={groupedByEngine}>
+                    <template if:true={filteredGroupedByEngine}>
                         <lightning-accordion allow-multiple-sections-open>
-                            <template for:each={groupedByEngine} for:item="engineGroup">
+                            <template for:each={filteredGroupedByEngine} for:item="engineGroup">
                                 <lightning-accordion-section
                                     key={engineGroup.engine}
                                     name={engineGroup.engine}

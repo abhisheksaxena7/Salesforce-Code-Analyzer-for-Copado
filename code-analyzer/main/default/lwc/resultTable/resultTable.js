@@ -21,6 +21,7 @@ export default class ResultTable extends LightningElement {
     formattedJson;
     @track filteredJson = null;
     @track violationCounts = null;
+    @track selectedSeverity = null;
 
     @wire(getRelatedListRecords, {
         parentRecordId: '$recordId',
@@ -97,6 +98,40 @@ export default class ResultTable extends LightningElement {
             engines[v.engine].violationCount += 1;
         });
         // Convert rules object to array for each engine, and add description
+        return Object.values(engines).map(engineObj => ({
+            engine: engineObj.engine,
+            description: this.engineDescriptions[engineObj.engine] || '',
+            violationCount: engineObj.violationCount,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                ...ruleObj,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+            }))
+        }));
+    }
+
+    get filteredGroupedByEngine() {
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) return [];
+        const filterSeverity = this.selectedSeverity;
+        const engines = {};
+        data.forEach(v => {
+            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
+            if (!engines[v.engine]) {
+                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
+            }
+            if (!engines[v.engine].rules[v.rule]) {
+                engines[v.engine].rules[v.rule] = {
+                    rule: v.rule,
+                    severity: v.severity,
+                    tags: v.tags,
+                    resource: v.resource,
+                    violations: []
+                };
+            }
+            engines[v.engine].rules[v.rule].violations.push(v);
+            engines[v.engine].violationCount += 1;
+        });
         return Object.values(engines).map(engineObj => ({
             engine: engineObj.engine,
             description: this.engineDescriptions[engineObj.engine] || '',
@@ -265,6 +300,11 @@ export default class ResultTable extends LightningElement {
         return this.engineDescriptions[engine] || '';
     }
 
+    handleSeverityClick(event) {
+        const severity = event.currentTarget.dataset.severity;
+        this.selectedSeverity = (this.selectedSeverity === severity) ? null : severity;
+    }
+
     get severityLevels() {
         if (!this.violationCounts) return [];
         return Object.keys(this.violationCounts)
@@ -274,22 +314,11 @@ export default class ResultTable extends LightningElement {
                 return {
                     level,
                     count: this.violationCounts[key],
-                    badgeClass: this.getSeverityBadgeClass(level),
-                    label: `Severity ${level}: ${this.violationCounts[key]}`
+                    label: `Severity ${level}: ${this.violationCounts[key]}`,
+                    buttonVariant: 'brand',
+                    buttonClass: `severity-${level}-btn`
                 };
             })
             .sort((a, b) => a.level - b.level);
-    }
-
-    getSeverityBadgeClass(level) {
-        // You can adjust these classes for your preferred color scheme
-        switch (level) {
-            case '1': return 'slds-theme_error';
-            case '2': return 'slds-theme_warning';
-            case '3': return 'slds-theme_offline';
-            case '4': return 'slds-theme_info';
-            case '5': return 'slds-theme_success';
-            default: return 'slds-theme_default';
-        }
     }
 }
