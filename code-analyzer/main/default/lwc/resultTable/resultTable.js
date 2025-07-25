@@ -137,6 +137,14 @@ export default class ResultTable extends LightningElement {
         });
     }
 
+    get violationColumns() {
+        return [
+            { label: 'File', fieldName: 'file', type: 'text' },
+            { label: 'Line', fieldName: 'line', type: 'number' },
+            { label: 'Message', fieldName: 'message', type: 'text' }
+        ];
+    }
+
 
     get isTabular() {
         return (this.type === 'Table' && this.columns.length);

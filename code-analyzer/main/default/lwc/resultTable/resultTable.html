@@ -55,13 +55,14 @@
                                                         <a href={ruleGroup.resource} target="_blank">Rule Docs</a>
                                                     </template>
                                                 </div>
-                                                <ul>
-                                                    <template for:each={ruleGroup.violations} for:item="v">
-                                                        <li key={v.id}>
-                                                            <strong>{v.file}:{v.line}</strong> - {v.message}
-                                                        </li>
-                                                    </template>
-                                                </ul>
+                                                <template if:true={ruleGroup.violations}>
+                                                    <lightning-datatable
+                                                        key-field="id"
+                                                        data={ruleGroup.violations}
+                                                        columns={violationColumns}
+                                                        hide-checkbox-column>
+                                                    </lightning-datatable>
+                                                </template>
                                             </lightning-accordion-section>
                                         </template>
                                     </lightning-accordion>
