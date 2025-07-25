@@ -325,19 +325,60 @@ export default class ResultTable extends LightningElement {
             return [];
         }
 
+        // Get the data to count from (filtered or original)
+        const data = this.filteredJson || this.formattedJson;
+
         return Object.keys(this.violationCounts)
             .filter(key => key.startsWith(SEVERITY_PREFIX))
             .map(key => {
                 const level = key.replace(SEVERITY_PREFIX, '');
+
+                // Calculate dynamic count for this severity level
+                let count = this.violationCounts[key];
+                if (data && this.filteredJson) {
+                    // If search is applied, count only violations of this severity in the filtered results
+                    count = data.filter(violation => String(violation.severity) === String(level)).length;
+                }
+
+                // Determine button variant based on selection state
+                const isSelected = this.selectedSeverity === level;
+                const buttonVariant = isSelected ? 'success' : 'brand';
+                const buttonClass = `severity-${level}-btn ${isSelected ? 'selected' : ''}`;
+
                 return {
-                    buttonClass: `severity-${level}-btn`,
-                    buttonVariant: 'brand',
-                    count: this.violationCounts[key],
-                    label: `Severity ${level}: ${this.violationCounts[key]}`,
+                    buttonClass: buttonClass,
+                    buttonVariant: buttonVariant,
+                    count: count,
+                    label: `Severity ${level}: ${count}`,
                     level
                 };
             })
             .sort((a, b) => a.level - b.level);
+    }
+
+    get dynamicTotalViolations() {
+        // Use filteredJson if present, otherwise formattedJson
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) {
+            return 0;
+        }
+
+        // If a severity filter is applied, count only violations of that severity
+        if (this.selectedSeverity) {
+            return data.filter(violation => String(violation.severity) === String(this.selectedSeverity)).length;
+        }
+
+        // If search is applied, return the count of filtered results
+        if (this.filteredJson) {
+            return this.filteredJson.length;
+        }
+
+        // Return total count from violationCounts if available, otherwise count from data
+        return this.violationCounts?.total || data.length;
+    }
+
+    get hasActiveFilters() {
+        return this.selectedSeverity !== null || this.filteredJson !== null;
     }
 
     get violationColumns() {
@@ -472,6 +513,11 @@ export default class ResultTable extends LightningElement {
     handleSeverityClick(event) {
         const severity = event.currentTarget.dataset.severity;
         this.selectedSeverity = (this.selectedSeverity === severity) ? null : severity;
+    }
+
+    handleClearFilters() {
+        this.selectedSeverity = null;
+        this.filteredJson = null;
     }
 
     // Transformation function

@@ -15,7 +15,7 @@
                                     <div class="slds-media__body">
                                         <h2 class="slds-card__header-title">
                                             <strong>Total Violations:</strong>
-                                            <lightning-badge label={violationCounts.total} class="slds-theme_info slds-m-left_x-small"></lightning-badge>
+                                            <lightning-badge label={dynamicTotalViolations} class="slds-theme_info slds-var-m-left_x-small"></lightning-badge>
                                         </h2>
                                     </div>
                                 </div>
@@ -44,6 +44,14 @@
                                             variant={sev.buttonVariant}
                                             class={sev.buttonClass}
                                             onclick={handleSeverityClick}>
+                                        </lightning-button>
+                                    </template>
+                                    <template if:true={hasActiveFilters}>
+                                        <lightning-button
+                                            label="Clear Filters"
+                                            variant="neutral"
+                                            onclick={handleClearFilters}
+                                            class="clear-filters-btn">
                                         </lightning-button>
                                     </template>
                                 </div>

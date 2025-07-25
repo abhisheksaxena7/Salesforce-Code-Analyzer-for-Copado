@@ -23,6 +23,22 @@
     border: 2px solid #005fb2;
 }
 
+/* Selected severity button styles */
+.severity-1-btn.selected,
+.severity-2-btn.selected,
+.severity-3-btn.selected,
+.severity-4-btn.selected,
+.severity-5-btn.selected {
+    box-shadow: 0 0 0 3px #005fb2;
+    border: 2px solid #005fb2;
+    font-weight: bold;
+}
+
+.clear-filters-btn {
+    margin-left: 0.5rem;
+    border: 1px solid #dddbda;
+}
+
 /* Styles moved from inline HTML */
 .severity-1-btn,
 .severity-2-btn,
