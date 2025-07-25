@@ -1,66 +1,84 @@
-import { LightningElement, api, wire, track } from 'lwc';
-import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
+import { LightningElement, api, track, wire } from 'lwc';
+import { getFieldValue, getRecord } from 'lightning/uiRecordApi';
 import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
-
-import VERSION_DATA_FIELD from '@salesforce/schema/ContentVersion.VersionData';
-import TITLE_FIELD from '@salesforce/schema/ContentDocumentLink.ContentDocument.Title';
-import LATEST_PUBLISHED_VERSION_FIELD from '@salesforce/schema/ContentDocumentLink.ContentDocument.LatestPublishedVersionId';
+import { loadScript } from 'lightning/platformResourceLoader';
 
 import jsyamllib from "@salesforce/resourceUrl/jsyamllib";
-import { loadScript } from 'lightning/platformResourceLoader';
+import LATEST_PUBLISHED_VERSION_FIELD from '@salesforce/schema/ContentDocumentLink.ContentDocument.LatestPublishedVersionId';
+import TITLE_FIELD from '@salesforce/schema/ContentDocumentLink.ContentDocument.Title';
+import VERSION_DATA_FIELD from '@salesforce/schema/ContentVersion.VersionData';
+
+// Constants for magic numbers and strings
+const DEFAULT_GROUPING = 'engine';
+const OUTPUT_FILE_NAME = 'output.json';
+const UNKNOWN_FILE = 'Unknown File';
+const UNKNOWN_TYPE = 'Unknown';
+const MAIN_DEFAULT_PATTERN = /main\/default\/([^\/]+)\/(.+)/u;
+const SEVERITY_PREFIX = 'sev';
 
 export default class ResultTable extends LightningElement {
     @api recordId;
-    showTable = false;
-    message = 'No Violations Found';
-    @track relevantFormattedJson;
-    _versionId;
-    type;
-    result = {};
-    scriptsLoaded = false;
-    formattedJson;
     @track filteredJson = null;
-    @track violationCounts = null;
+    @track relevantFormattedJson;
     @track selectedSeverity = null;
+    @track violationCounts = null;
 
-    @track groupBy = 'engine'; // default grouping
+    formattedJson;
+    groupBy = DEFAULT_GROUPING;
     groupByOptions = [
         { label: 'Engine/Rule', value: 'engine' },
         { label: 'Type/Filename', value: 'typefilename' }
     ];
+    message = 'No Violations Found';
+    result = {};
+    scriptsLoaded = false;
+    showTable = false;
+    type;
+    versionId;
+
+    // Mapping of engine names to their short descriptions
+    engineDescriptions = {
+        cpd: 'Copy-Paste Detector: Finds duplicate code blocks in Apex and other supported languages.',
+        eslint: 'Analyzes JavaScript and Lightning Web Components for code quality and style issues.',
+        flow: 'Analyzes Salesforce Flows for best practices, security, and maintainability issues.',
+        pmd: 'Performs static analysis on Apex, Visualforce. Includes the PMD AppExchange rules.',
+        regex: 'Detects code patterns using regular expressions. Useful for enforcing simple, custom rules.',
+        retirejs: 'Scans JavaScript libraries for known security vulnerabilities.',
+        sfge: 'Salesforce Graph Engine: Advanced static analysis for security, CRUD/FLS, and data flow in Apex.'
+    };
 
     @wire(getRelatedListRecords, {
-        parentRecordId: '$recordId',
-        relatedListId: 'ContentDocumentLinks',
         fields: [
             `${LATEST_PUBLISHED_VERSION_FIELD.objectApiName}.${LATEST_PUBLISHED_VERSION_FIELD.fieldApiName}`,
             `${TITLE_FIELD.objectApiName}.${TITLE_FIELD.fieldApiName}`
-        ]
+        ],
+        parentRecordId: '$recordId',
+        relatedListId: 'ContentDocumentLinks'
     })
     docLinksInfo({ data }) {
         if (data) {
-            const logsDoc = data?.records?.find((doc) => getFieldValue(doc, TITLE_FIELD) === 'output.json'); // change the file name from where data should be fetched
+            // Change the file name from where data should be fetched
+            const logsDoc = data?.records?.find((doc) => getFieldValue(doc, TITLE_FIELD) === OUTPUT_FILE_NAME);
 
             if (logsDoc) {
-                this._versionId = getFieldValue(logsDoc, LATEST_PUBLISHED_VERSION_FIELD);
+                this.versionId = getFieldValue(logsDoc, LATEST_PUBLISHED_VERSION_FIELD);
             }
         }
     }
 
-    @wire(getRecord, { recordId: '$_versionId', fields: [VERSION_DATA_FIELD] })
+    @wire(getRecord, { fields: [VERSION_DATA_FIELD], recordId: '$versionId' })
     wiredVersion({ data }) {
         if (data) {
             const rawData = getFieldValue(data, VERSION_DATA_FIELD);
             const serializedJson = this.b64DecodeUnicode(rawData);
-            const { type, formattedJson } = this.getFormattedData(serializedJson);
+            const { formattedJson, type } = this.getFormattedData(serializedJson);
+
             if (formattedJson.length > 0) {
-                this.showTable = true;
-                this.type = type;
                 this.formattedJson = formattedJson;
                 this.relevantFormattedJson = formattedJson;
-                return;
+                this.showTable = true;
+                this.type = type;
             }
-            return;
         }
     }
 
@@ -69,104 +87,6 @@ export default class ResultTable extends LightningElement {
             await loadScript(this, jsyamllib);
             this.scriptsLoaded = true;
         }
-    }
-
-    get yamlData() {
-        if (this.isYAML && this.scriptsLoaded) {
-            return jsyaml.dump(this.formattedJson);
-        }
-
-        return '';
-    }
-
-    get recordCount() {
-        return this.relevantFormattedJson?.length;
-    }
-
-    get groupedByEngine() {
-        const data = this.filteredJson || this.formattedJson;
-        if (!data) return [];
-        const engines = {};
-        data.forEach(v => {
-            if (!engines[v.engine]) {
-                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
-            }
-            if (!engines[v.engine].rules[v.rule]) {
-                engines[v.engine].rules[v.rule] = {
-                    rule: v.rule,
-                    severity: v.severity,
-                    tags: v.tags,
-                    resource: v.resource,
-                    violations: []
-                };
-            }
-            engines[v.engine].rules[v.rule].violations.push(v);
-            engines[v.engine].violationCount += 1;
-        });
-        // Convert rules object to array for each engine, and add description
-        return Object.values(engines).map(engineObj => ({
-            engine: engineObj.engine,
-            description: this.engineDescriptions[engineObj.engine] || '',
-            violationCount: engineObj.violationCount,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                ...ruleObj,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
-            }))
-        }));
-    }
-
-    get filteredGroupedByEngine() {
-        const data = this.filteredJson || this.formattedJson;
-        if (!data) return [];
-        const filterSeverity = this.selectedSeverity;
-        const engines = {};
-        data.forEach(v => {
-            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
-            if (!engines[v.engine]) {
-                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
-            }
-            if (!engines[v.engine].rules[v.rule]) {
-                engines[v.engine].rules[v.rule] = {
-                    rule: v.rule,
-                    severity: v.severity,
-                    tags: v.tags,
-                    resource: v.resource,
-                    violations: []
-                };
-            }
-            engines[v.engine].rules[v.rule].violations.push(v);
-            engines[v.engine].violationCount += 1;
-        });
-        return Object.values(engines).map(engineObj => ({
-            engine: engineObj.engine,
-            description: this.engineDescriptions[engineObj.engine] || '',
-            violationCount: engineObj.violationCount,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                ...ruleObj,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
-            }))
-        }));
-    }
-
-    get groupedByRule() {
-        if (!this.formattedJson) return [];
-        const groups = {};
-        this.formattedJson.forEach(v => {
-            if (!groups[v.rule]) {
-                groups[v.rule] = {
-                    rule: v.rule,
-                    engine: v.engine,
-                    severity: v.severity,
-                    tags: v.tags,
-                    resource: v.resource,
-                    violations: []
-                };
-            }
-            groups[v.rule].violations.push(v);
-        });
-        return Object.values(groups);
     }
 
     get columns() {
@@ -181,222 +101,156 @@ export default class ResultTable extends LightningElement {
 
         return uniqueKeys.map(key => {
             return {
-                label: key.charAt(0).toUpperCase() + key.slice(1),
                 fieldName: key,
+                label: key.charAt(0).toUpperCase() + key.slice(1),
                 type: 'text'
             };
         });
     }
 
-    get violationColumns() {
-        return [
-            { label: 'File', fieldName: 'file', type: 'text' },
-            { label: 'Line', fieldName: 'line', type: 'number' },
-            { label: 'Message', fieldName: 'message', type: 'text' }
-        ];
-    }
-
-    get violationColumnsForDisplay() {
-        if (this.groupBy === 'typefilename') {
-            // Show Engine, Severity, Rule, Line, and Message columns in this order
-            return [
-                { label: 'Engine', fieldName: 'engine', type: 'text' },
-                { label: 'Rule', fieldName: 'rule', type: 'text' },
-                { label: 'Severity', fieldName: 'severity', type: 'text' },
-                { label: 'Line', fieldName: 'line', type: 'number' },
-                { label: 'Message', fieldName: 'message', type: 'text' }
-            ];
+    get groupedByEngine() {
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) {
+            return [];
         }
-        return this.violationColumns;
-    }
 
-
-    get isTabular() {
-        return (this.type === 'Table' && this.columns.length);
-    }
-
-
-    get isYAML() {
-        return (this.type === 'YAML' && this.formattedJson);
-    }
-
-
-    get isString() {
-        return (this.type === 'String' && this.formattedJson);
-    }
-
-    // Transformation function
-    transformJson(parsedJson) {
-        if (parsedJson.violations && Array.isArray(parsedJson.violations)) {
-            return parsedJson.violations.map((violation, idx) => {
-                const primaryLoc = violation.locations?.[violation.primaryLocationIndex] || violation.locations?.[0] || {};
-                return {
-                    id: `${violation.rule}-${primaryLoc.file}-${primaryLoc.startLine}-${idx}`,
-                    rule: violation.rule,
+        const engines = {};
+        data.forEach(violation => {
+            if (!engines[violation.engine]) {
+                engines[violation.engine] = {
                     engine: violation.engine,
+                    rules: {},
+                    violationCount: 0
+                };
+            }
+            if (!engines[violation.engine].rules[violation.rule]) {
+                engines[violation.engine].rules[violation.rule] = {
+                    engine: violation.engine,
+                    resource: violation.resource,
+                    rule: violation.rule,
                     severity: violation.severity,
                     tags: violation.tags,
-                    file: primaryLoc.file,
-                    line: primaryLoc.startLine,
-                    message: violation.message,
-                    resource: violation.resources?.[0] || '',
-                    allLocations: violation.locations,
-                    fullViolation: violation
-                };
-            });
-        }
-        return [];
-    }
-
-    getFormattedData(serializedJson) {
-        try {
-            const parsed = JSON.parse(serializedJson);
-            // Set violationCounts from the top-level property
-            this.violationCounts = parsed.violationCounts || null;
-            const formattedJson = this.transformJson(parsed);
-            if (formattedJson?.length) {
-                return {
-                    type: 'Table', formattedJson
-                };
-            } else {
-                return {
-                    type: 'YAML', formattedJson
+                    violations: []
                 };
             }
-        } catch (error) {
-            return {
-                type: 'String',
-                formattedJson: serializedJson
-            };
-        }
-    }
-
-    handleSearch(event) {
-        const searchTerm = event.target.value ? event.target.value.trim().toLowerCase() : '';
-
-        if (!searchTerm) {
-            this._clearSearch();
-        } else {
-            this._applySearch(searchTerm);
-        }
-    }
-
-    b64DecodeUnicode(str) {
-        return decodeURIComponent(atob(str).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-    }
-
-
-    _clearSearch() {
-        this.filteredJson = null;
-    }
-
-
-    _applySearch(searchTerm) {
-        this.filteredJson = this.formattedJson.filter((row) => {
-            for (const key in row) {
-                const value = '' + row[key] || '';
-                if (value && value.toLowerCase()?.includes(searchTerm)) {
-                    return true;
-                }
-            }
-            return false;
+            engines[violation.engine].rules[violation.rule].violations.push(violation);
+            engines[violation.engine].violationCount += 1;
         });
+
+        // Convert rules object to array for each engine, and add description
+        return Object.values(engines).map(engineObj => ({
+            description: this.engineDescriptions[engineObj.engine] || '',
+            engine: engineObj.engine,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                ...ruleObj,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+            })),
+            violationCount: engineObj.violationCount
+        }));
     }
 
-    // Mapping of engine names to their short descriptions
-    engineDescriptions = {
-        regex: 'Detects code patterns using regular expressions. Useful for enforcing simple, custom rules.',
-        eslint: 'Analyzes JavaScript and Lightning Web Components for code quality and style issues.',
-        pmd: 'Performs static analysis on Apex, Visualforce. Includes the PMD AppExchange rules.',
-        sfge: 'Salesforce Graph Engine: Advanced static analysis for security, CRUD/FLS, and data flow in Apex.',
-        retirejs: 'Scans JavaScript libraries for known security vulnerabilities.',
-        cpd: 'Copy-Paste Detector: Finds duplicate code blocks in Apex and other supported languages.',
-        flow: 'Analyzes Salesforce Flows for best practices, security, and maintainability issues.'
-    };
-
-    getEngineDescription(engine) {
-        return this.engineDescriptions[engine] || '';
-    }
-
-    handleSeverityClick(event) {
-        const severity = event.currentTarget.dataset.severity;
-        this.selectedSeverity = (this.selectedSeverity === severity) ? null : severity;
-    }
-
-    get severityLevels() {
-        if (!this.violationCounts) return [];
-        return Object.keys(this.violationCounts)
-            .filter(key => key.startsWith('sev'))
-            .map(key => {
-                const level = key.replace('sev', '');
-                return {
-                    level,
-                    count: this.violationCounts[key],
-                    label: `Severity ${level}: ${this.violationCounts[key]}`,
-                    buttonVariant: 'brand',
-                    buttonClass: `severity-${level}-btn`
-                };
-            })
-            .sort((a, b) => a.level - b.level);
-    }
-
-    handleGroupByChange(event) {
-        this.groupBy = event.detail.value;
-    }
-
-    get groupedViolations() {
-        if (this.groupBy === 'engine') {
-            return this.groupByEngineAndRule(this.formattedJson);
-        } else {
-            return this.groupByFilename(this.formattedJson);
+    get filteredGroupedByEngine() {
+        const data = this.filteredJson || this.formattedJson;
+        if (!data) {
+            return [];
         }
-    }
 
-    groupByEngineAndRule(violations) {
-        // Your existing grouping logic
-    }
-
-    groupByFilename(violations) {
-        // New logic to group by filename
-        const grouped = {};
-        violations.forEach(v => {
-            const file = v.sinkFileName || v.file || 'Unknown File';
-            if (!grouped[file]) {
-                grouped[file] = [];
+        const filterSeverity = this.selectedSeverity;
+        const engines = {};
+        data.forEach(violation => {
+            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
+                return;
             }
-            grouped[file].push(v);
+            if (!engines[violation.engine]) {
+                engines[violation.engine] = {
+                    engine: violation.engine,
+                    rules: {},
+                    violationCount: 0
+                };
+            }
+            if (!engines[violation.engine].rules[violation.rule]) {
+                engines[violation.engine].rules[violation.rule] = {
+                    engine: violation.engine,
+                    resource: violation.resource,
+                    rule: violation.rule,
+                    severity: violation.severity,
+                    tags: violation.tags,
+                    violations: []
+                };
+            }
+            engines[violation.engine].rules[violation.rule].violations.push(violation);
+            engines[violation.engine].violationCount += 1;
         });
-        return grouped;
+
+        return Object.values(engines).map(engineObj => ({
+            description: this.engineDescriptions[engineObj.engine] || '',
+            engine: engineObj.engine,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                ...ruleObj,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+            })),
+            violationCount: engineObj.violationCount
+        }));
+    }
+
+    get groupedByRule() {
+        if (!this.formattedJson) {
+            return [];
+        }
+
+        const groups = {};
+        this.formattedJson.forEach(violation => {
+            if (!groups[violation.rule]) {
+                groups[violation.rule] = {
+                    engine: violation.engine,
+                    resource: violation.resource,
+                    rule: violation.rule,
+                    severity: violation.severity,
+                    tags: violation.tags,
+                    violations: []
+                };
+            }
+            groups[violation.rule].violations.push(violation);
+        });
+
+        return Object.values(groups);
     }
 
     get groupedByMetadataTypeArray() {
         // Use filteredJson if present, otherwise formattedJson
         const data = this.filteredJson || this.formattedJson;
-        if (!data) return [];
+        if (!data) {
+            return [];
+        }
+
         const filterSeverity = this.selectedSeverity;
         const metaTypeMap = {};
 
-        data.forEach(v => {
-            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
-            let metaType = 'Unknown';
-            let fileKey = v.file || 'Unknown File';
-            if (v.file) {
+        data.forEach(violation => {
+            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
+                return;
+            }
+
+            let metaType = UNKNOWN_TYPE;
+            let fileKey = violation.file || UNKNOWN_FILE;
+
+            if (violation.file) {
                 // Find the segment after 'main/default/'
-                const match = v.file.match(/main\/default\/([^\/]+)\/(.+)/);
+                const match = violation.file.match(MAIN_DEFAULT_PATTERN);
                 if (match) {
-                    metaType = match[1];
-                    fileKey = match[2];
+                    [, metaType, fileKey] = match;
                 }
             }
+
             if (!metaTypeMap[metaType]) {
                 metaTypeMap[metaType] = {};
             }
             if (!metaTypeMap[metaType][fileKey]) {
                 metaTypeMap[metaType][fileKey] = [];
             }
-            metaTypeMap[metaType][fileKey].push(v);
+            metaTypeMap[metaType][fileKey].push(violation);
         });
 
         // Convert to array structure for template, with counts in labels
@@ -406,21 +260,13 @@ export default class ResultTable extends LightningElement {
                 label: `${file} (${metaTypeMap[metaType][file].length})`,
                 violations: metaTypeMap[metaType][file]
             }));
-            const totalViolations = filesArr.reduce((sum, f) => sum + f.violations.length, 0);
+            const totalViolations = filesArr.reduce((sum, fileObj) => sum + fileObj.violations.length, 0);
             return {
+                files: filesArr,
                 key: metaType,
-                label: `${metaType} (${totalViolations})`,
-                files: filesArr
+                label: `${metaType} (${totalViolations})`
             };
         });
-    }
-
-    get isFilenameGrouping() {
-        return this.groupBy === 'filename';
-    }
-
-    get isTypeFilenameGrouping() {
-        return this.groupBy === 'typefilename';
     }
 
     get groupedViolationsArray() {
@@ -436,19 +282,210 @@ export default class ResultTable extends LightningElement {
         return [];
     }
 
-    // Example for filename grouping
-    groupByFilenameArray(violations) {
-        if (!violations) return [];
+    get groupedViolations() {
+        if (this.groupBy === 'engine') {
+            return this.groupByEngineAndRule(this.formattedJson);
+        } else {
+            return this.groupByFilename(this.formattedJson);
+        }
+    }
+
+    get isEngineGrouping() {
+        return this.groupBy === 'engine';
+    }
+
+    get isFilenameGrouping() {
+        return this.groupBy === 'filename';
+    }
+
+    get isString() {
+        return (this.type === 'String' && this.formattedJson);
+    }
+
+    get isTabular() {
+        return (this.type === 'Table' && this.columns.length);
+    }
+
+    get isTypeFilenameGrouping() {
+        return this.groupBy === 'typefilename';
+    }
+
+    get isYAML() {
+        return (this.type === 'YAML' && this.formattedJson);
+    }
+
+    get recordCount() {
+        return this.relevantFormattedJson?.length;
+    }
+
+    get severityLevels() {
+        if (!this.violationCounts) {
+            return [];
+        }
+
+        return Object.keys(this.violationCounts)
+            .filter(key => key.startsWith(SEVERITY_PREFIX))
+            .map(key => {
+                const level = key.replace(SEVERITY_PREFIX, '');
+                return {
+                    buttonClass: `severity-${level}-btn`,
+                    buttonVariant: 'brand',
+                    count: this.violationCounts[key],
+                    label: `Severity ${level}: ${this.violationCounts[key]}`,
+                    level
+                };
+            })
+            .sort((a, b) => a.level - b.level);
+    }
+
+    get violationColumns() {
+        return [
+            { fieldName: 'file', label: 'File', type: 'text' },
+            { fieldName: 'line', label: 'Line', type: 'number' },
+            { fieldName: 'message', label: 'Message', type: 'text' }
+        ];
+    }
+
+    get violationColumnsForDisplay() {
+        if (this.groupBy === 'typefilename') {
+            // Show Engine, Severity, Rule, Line, and Message columns in this order
+            return [
+                { fieldName: 'engine', label: 'Engine', type: 'text' },
+                { fieldName: 'rule', label: 'Rule', type: 'text' },
+                { fieldName: 'severity', label: 'Severity', type: 'text' },
+                { fieldName: 'line', label: 'Line', type: 'number' },
+                { fieldName: 'message', label: 'Message', type: 'text' }
+            ];
+        }
+        return this.violationColumns;
+    }
+
+    get yamlData() {
+        if (this.isYAML && this.scriptsLoaded) {
+            return jsyaml.dump(this.formattedJson);
+        }
+
+        return '';
+    }
+
+    b64DecodeUnicode(str) {
+        return decodeURIComponent(atob(str).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    }
+
+    getEngineDescription(engine) {
+        return this.engineDescriptions[engine] || '';
+    }
+
+    getFormattedData(serializedJson) {
+        try {
+            const parsed = JSON.parse(serializedJson);
+            // Set violationCounts from the top-level property
+            this.violationCounts = parsed.violationCounts || null;
+            const formattedJson = this.transformJson(parsed);
+
+            if (formattedJson?.length) {
+                return {
+                    formattedJson,
+                    type: 'Table'
+                };
+            } else {
+                return {
+                    formattedJson,
+                    type: 'YAML'
+                };
+            }
+        } catch (error) {
+            return {
+                formattedJson: serializedJson,
+                type: 'String'
+            };
+        }
+    }
+
+    groupByEngineAndRule(violations) {
+        // Your existing grouping logic
+    }
+
+    groupByEngineAndRuleArray(violations) {
         const filterSeverity = this.selectedSeverity;
+        const engines = {};
+
+        violations.forEach(violation => {
+            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
+                return;
+            }
+
+            if (!engines[violation.engine]) {
+                engines[violation.engine] = {
+                    engine: violation.engine,
+                    rules: {},
+                    violationCount: 0
+                };
+            }
+            if (!engines[violation.engine].rules[violation.rule]) {
+                engines[violation.engine].rules[violation.rule] = {
+                    engine: violation.engine,
+                    resource: violation.resource,
+                    rule: violation.rule,
+                    severity: violation.severity,
+                    tags: violation.tags,
+                    violations: []
+                };
+            }
+            engines[violation.engine].rules[violation.rule].violations.push(violation);
+            engines[violation.engine].violationCount += 1;
+        });
+
+        return Object.values(engines).map(engineObj => ({
+            description: this.engineDescriptions[engineObj.engine] || '',
+            key: engineObj.engine,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                key: ruleObj.rule,
+                label: `${ruleObj.rule} (${ruleObj.violations.length})`,
+                resource: ruleObj.resource,
+                severity: ruleObj.severity,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
+                violations: ruleObj.violations
+            }))
+        }));
+    }
+
+    groupByFilename(violations) {
+        // New logic to group by filename
         const grouped = {};
-        violations.forEach(v => {
-            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
-            const file = v.sinkFileName || v.file || 'Unknown File';
+        violations.forEach(violation => {
+            const file = violation.sinkFileName || violation.file || UNKNOWN_FILE;
             if (!grouped[file]) {
                 grouped[file] = [];
             }
-            grouped[file].push(v);
+            grouped[file].push(violation);
         });
+        return grouped;
+    }
+
+    groupByFilenameArray(violations) {
+        if (!violations) {
+            return [];
+        }
+
+        const filterSeverity = this.selectedSeverity;
+        const grouped = {};
+
+        violations.forEach(violation => {
+            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
+                return;
+            }
+
+            const file = violation.sinkFileName || violation.file || UNKNOWN_FILE;
+            if (!grouped[file]) {
+                grouped[file] = [];
+            }
+            grouped[file].push(violation);
+        });
+
         return Object.keys(grouped).map(file => ({
             key: file,
             label: file,
@@ -456,44 +493,61 @@ export default class ResultTable extends LightningElement {
         }));
     }
 
-    // For engine/rule grouping, adapt your existing logic to return an array of engines, each with a rules array
-    // Example:
-    groupByEngineAndRuleArray(violations) {
-        const filterSeverity = this.selectedSeverity;
-        const engines = {};
-        violations.forEach(v => {
-            if (filterSeverity && String(v.severity) !== String(filterSeverity)) return;
-            if (!engines[v.engine]) {
-                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
-            }
-            if (!engines[v.engine].rules[v.rule]) {
-                engines[v.engine].rules[v.rule] = {
-                    rule: v.rule,
-                    severity: v.severity,
-                    tags: v.tags,
-                    resource: v.resource,
-                    violations: []
-                };
-            }
-            engines[v.engine].rules[v.rule].violations.push(v);
-            engines[v.engine].violationCount += 1;
-        });
-        return Object.values(engines).map(engineObj => ({
-            key: engineObj.engine,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            description: this.engineDescriptions[engineObj.engine] || '',
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                key: ruleObj.rule,
-                label: `${ruleObj.rule} (${ruleObj.violations.length})`,
-                severity: ruleObj.severity,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
-                resource: ruleObj.resource,
-                violations: ruleObj.violations
-            }))
-        }));
+    handleGroupByChange(event) {
+        this.groupBy = event.detail.value;
     }
 
-    get isEngineGrouping() {
-        return this.groupBy === 'engine';
+    handleSearch(event) {
+        const searchTerm = event.target.value ? event.target.value.trim().toLowerCase() : '';
+
+        if (!searchTerm) {
+            this._clearSearch();
+        } else {
+            this._applySearch(searchTerm);
+        }
+    }
+
+    handleSeverityClick(event) {
+        const severity = event.currentTarget.dataset.severity;
+        this.selectedSeverity = (this.selectedSeverity === severity) ? null : severity;
+    }
+
+    // Transformation function
+    transformJson(parsedJson) {
+        if (parsedJson.violations && Array.isArray(parsedJson.violations)) {
+            return parsedJson.violations.map((violation, idx) => {
+                const primaryLoc = violation.locations?.[violation.primaryLocationIndex] || violation.locations?.[0] || {};
+                return {
+                    allLocations: violation.locations,
+                    engine: violation.engine,
+                    file: primaryLoc.file,
+                    fullViolation: violation,
+                    id: `${violation.rule}-${primaryLoc.file}-${primaryLoc.startLine}-${idx}`,
+                    line: primaryLoc.startLine,
+                    message: violation.message,
+                    resource: violation.resources?.[0] || '',
+                    rule: violation.rule,
+                    severity: violation.severity,
+                    tags: violation.tags
+                };
+            });
+        }
+        return [];
+    }
+
+    _applySearch(searchTerm) {
+        this.filteredJson = this.formattedJson.filter((row) => {
+            for (const key in row) {
+                const value = String(row[key]) || '';
+                if (value && value.toLowerCase()?.includes(searchTerm)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    _clearSearch() {
+        this.filteredJson = null;
     }
 }

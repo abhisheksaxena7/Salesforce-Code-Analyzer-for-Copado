@@ -43,9 +43,8 @@
                                             data-severity={sev.level}
                                             variant={sev.buttonVariant}
                                             class={sev.buttonClass}
-                                            onclick={handleSeverityClick}
-                                            style="margin-right: 0.5rem;"
-                                        ></lightning-button>
+                                            onclick={handleSeverityClick}>
+                                        </lightning-button>
                                     </template>
                                 </div>
                             </div>
@@ -69,7 +68,7 @@
                                         key={engineGroup.key}
                                         name={engineGroup.key}
                                         label={engineGroup.label}>
-                                        <div class="engine-description" style="margin-bottom: 0.5rem; color: #444; font-style: italic;">
+                                        <div class="engine-description slds-m-bottom_x-small">
                                             {engineGroup.description}
                                         </div>
                                         <lightning-accordion allow-multiple-sections-open>

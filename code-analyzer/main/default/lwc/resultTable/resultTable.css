@@ -22,3 +22,17 @@
     box-shadow: 0 0 0 3px #005fb2;
     border: 2px solid #005fb2;
 }
+
+/* Styles moved from inline HTML */
+.severity-1-btn,
+.severity-2-btn,
+.severity-3-btn,
+.severity-4-btn,
+.severity-5-btn {
+    margin-right: 0.5rem;
+}
+
+.engine-description {
+    color: #444;
+    font-style: italic;
+}
