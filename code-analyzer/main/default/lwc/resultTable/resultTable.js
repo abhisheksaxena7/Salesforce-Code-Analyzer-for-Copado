@@ -79,7 +79,7 @@ export default class ResultTable extends LightningElement {
         const engines = {};
         this.formattedJson.forEach(v => {
             if (!engines[v.engine]) {
-                engines[v.engine] = { engine: v.engine, rules: {} };
+                engines[v.engine] = { engine: v.engine, rules: {}, violationCount: 0 };
             }
             if (!engines[v.engine].rules[v.rule]) {
                 engines[v.engine].rules[v.rule] = {
@@ -91,11 +91,14 @@ export default class ResultTable extends LightningElement {
                 };
             }
             engines[v.engine].rules[v.rule].violations.push(v);
+            engines[v.engine].violationCount += 1;
         });
         // Convert rules object to array for each engine, and add description
         return Object.values(engines).map(engineObj => ({
             engine: engineObj.engine,
             description: this.engineDescriptions[engineObj.engine] || '',
+            violationCount: engineObj.violationCount,
+            label: `${engineObj.engine} (${engineObj.violationCount})`,
             rules: Object.values(engineObj.rules)
         }));
     }
