@@ -30,8 +30,35 @@
                         </lightning-layout>
                     </div>
 
-                    <lightning-datatable key-field="name" data={relevantFormattedJson} columns={columns} hide-checkbox-column>
-                    </lightning-datatable>
+                    <template if:true={groupedByRule}>
+                        <lightning-accordion allow-multiple-sections-open>
+                            <template for:each={groupedByRule} for:item="group">
+                                <lightning-accordion-section
+                                    key={group.rule}
+                                    name={group.rule}
+                                    label={group.rule}>
+                                    <div>
+                                        <strong>Engine:</strong> {group.engine} <br/>
+                                        <strong>Severity:</strong> {group.severity} <br/>
+                                        <strong>Tags:</strong> <template for:each={group.tags} for:item="tag">
+                                            <span key={tag}>{tag}</span>
+                                        </template>
+                                        <br/>
+                                        <template if:true={group.resource}>
+                                            <a href={group.resource} target="_blank">Rule Docs</a>
+                                        </template>
+                                    </div>
+                                    <ul>
+                                        <template for:each={group.violations} for:item="v">
+                                            <li key={v.id}>
+                                                <strong>{v.file}:{v.line}</strong> - {v.message}
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </lightning-accordion-section>
+                            </template>
+                        </lightning-accordion>
+                    </template>
                 </lightning-card>
             </div>
         </template>

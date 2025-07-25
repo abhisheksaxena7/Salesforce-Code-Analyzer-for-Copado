@@ -74,6 +74,25 @@ export default class ResultTable extends LightningElement {
         return this.relevantFormattedJson?.length;
     }
 
+    get groupedByRule() {
+        if (!this.formattedJson) return [];
+        const groups = {};
+        this.formattedJson.forEach(v => {
+            if (!groups[v.rule]) {
+                groups[v.rule] = {
+                    rule: v.rule,
+                    engine: v.engine,
+                    severity: v.severity,
+                    tags: v.tags,
+                    resource: v.resource,
+                    violations: []
+                };
+            }
+            groups[v.rule].violations.push(v);
+        });
+        return Object.values(groups);
+    }
+
     get columns() {
         if (this.type !== 'Table') {
             return [];
@@ -110,24 +129,24 @@ export default class ResultTable extends LightningElement {
 
     // Transformation function
     transformJson(parsedJson) {
-        // Only handle v5output.json: top-level object with 'violations' array
         if (parsedJson.violations && Array.isArray(parsedJson.violations)) {
-            return parsedJson.violations.map((violation) => {
-                // Use primary location for file/line info
+            return parsedJson.violations.map((violation, idx) => {
                 const primaryLoc = violation.locations?.[violation.primaryLocationIndex] || violation.locations?.[0] || {};
                 return {
+                    id: `${violation.rule}-${primaryLoc.file}-${primaryLoc.startLine}-${idx}`,
+                    rule: violation.rule,
                     engine: violation.engine,
-                    fileName: primaryLoc.file,
+                    severity: violation.severity,
+                    tags: violation.tags,
+                    file: primaryLoc.file,
                     line: primaryLoc.startLine,
-                    ruleName: violation.rule,
-                    category: violation.tags?.join(', '),
-                    url: (violation.resources && violation.resources[0]) || '',
                     message: violation.message,
-                    normalizedSeverity: violation.severity
+                    resource: violation.resources?.[0] || '',
+                    allLocations: violation.locations,
+                    fullViolation: violation
                 };
             });
         }
-        // fallback
         return [];
     }
 
