@@ -232,6 +232,7 @@ export default class ResultTable extends LightningElement {
         }).join(''));
     }
 
+
     _clearSearch() {
         this.filteredJson = null;
     }
@@ -266,13 +267,29 @@ export default class ResultTable extends LightningElement {
 
     get severityLevels() {
         if (!this.violationCounts) return [];
-        // Get all keys that start with 'sev' and sort by severity number
         return Object.keys(this.violationCounts)
             .filter(key => key.startsWith('sev'))
-            .map(key => ({
-                level: key.replace('sev', ''),
-                count: this.violationCounts[key]
-            }))
+            .map(key => {
+                const level = key.replace('sev', '');
+                return {
+                    level,
+                    count: this.violationCounts[key],
+                    badgeClass: this.getSeverityBadgeClass(level),
+                    label: `Severity ${level}: ${this.violationCounts[key]}`
+                };
+            })
             .sort((a, b) => a.level - b.level);
+    }
+
+    getSeverityBadgeClass(level) {
+        // You can adjust these classes for your preferred color scheme
+        switch (level) {
+            case '1': return 'slds-theme_error';
+            case '2': return 'slds-theme_warning';
+            case '3': return 'slds-theme_offline';
+            case '4': return 'slds-theme_info';
+            case '5': return 'slds-theme_success';
+            default: return 'slds-theme_default';
+        }
     }
 }

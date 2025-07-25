@@ -33,14 +33,18 @@
                     <template if:true={violationCounts}>
                         <lightning-card title="Violation Summary" class="slds-m-bottom_medium">
                             <div class="slds-p-horizontal_medium slds-p-vertical_small">
-                                <div>
-                                    <strong>Total Violations:</strong> {violationCounts.total}
+                                <div class="slds-text-heading_small slds-m-bottom_x-small">
+                                    <strong>Total Violations:</strong>
+                                    <lightning-badge label={violationCounts.total} class="slds-theme_info slds-m-left_x-small"></lightning-badge>
                                 </div>
-                                <div>
+                                <div class="slds-m-top_x-small">
                                     <template for:each={severityLevels} for:item="sev">
-                                        <span key={sev.level} style="margin-right: 1rem;">
-                                            <strong>Severity {sev.level}:</strong> {sev.count}
-                                        </span>
+                                        <lightning-badge
+                                            key={sev.level}
+                                            label={sev.label}
+                                            class={sev.badgeClass}
+                                            style="margin-right: 0.5rem;">
+                                        </lightning-badge>
                                     </template>
                                 </div>
                             </div>
