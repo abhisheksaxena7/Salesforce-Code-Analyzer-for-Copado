@@ -101,7 +101,10 @@ export default class ResultTable extends LightningElement {
             description: this.engineDescriptions[engineObj.engine] || '',
             violationCount: engineObj.violationCount,
             label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules)
+            rules: Object.values(engineObj.rules).map(ruleObj => ({
+                ...ruleObj,
+                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+            }))
         }));
     }
 

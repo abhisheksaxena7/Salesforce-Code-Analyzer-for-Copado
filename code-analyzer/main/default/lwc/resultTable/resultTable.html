@@ -50,9 +50,7 @@
                                                 <div>
                                                     <strong>Severity:</strong> {ruleGroup.severity} <br/>
                                                     <strong>Tags:</strong>
-                                                    <template for:each={ruleGroup.tags} for:item="tag">
-                                                        <span key={tag}>{tag}</span>
-                                                    </template>
+                                                    <span>{ruleGroup.tagsString}</span>
                                                     <br/>
                                                     <template if:true={ruleGroup.resource}>
                                                         <a href={ruleGroup.resource} target="_blank">Rule Docs</a>
