@@ -20,6 +20,7 @@ export default class ResultTable extends LightningElement {
     scriptsLoaded = false;
     formattedJson;
     @track filteredJson = null;
+    @track violationCounts = null;
 
     @wire(getRelatedListRecords, {
         parentRecordId: '$recordId',
@@ -194,7 +195,10 @@ export default class ResultTable extends LightningElement {
 
     getFormattedData(serializedJson) {
         try {
-            const formattedJson = this.transformJson(JSON.parse(serializedJson));
+            const parsed = JSON.parse(serializedJson);
+            // Set violationCounts from the top-level property
+            this.violationCounts = parsed.violationCounts || null;
+            const formattedJson = this.transformJson(parsed);
             if (formattedJson?.length) {
                 return {
                     type: 'Table', formattedJson
@@ -258,5 +262,17 @@ export default class ResultTable extends LightningElement {
 
     getEngineDescription(engine) {
         return this.engineDescriptions[engine] || '';
+    }
+
+    get severityLevels() {
+        if (!this.violationCounts) return [];
+        // Get all keys that start with 'sev' and sort by severity number
+        return Object.keys(this.violationCounts)
+            .filter(key => key.startsWith('sev'))
+            .map(key => ({
+                level: key.replace('sev', ''),
+                count: this.violationCounts[key]
+            }))
+            .sort((a, b) => a.level - b.level);
     }
 }

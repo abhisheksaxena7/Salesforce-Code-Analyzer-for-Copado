@@ -30,6 +30,23 @@
                         </lightning-layout>
                     </div>
 
+                    <template if:true={violationCounts}>
+                        <lightning-card title="Violation Summary" class="slds-m-bottom_medium">
+                            <div class="slds-p-horizontal_medium slds-p-vertical_small">
+                                <div>
+                                    <strong>Total Violations:</strong> {violationCounts.total}
+                                </div>
+                                <div>
+                                    <template for:each={severityLevels} for:item="sev">
+                                        <span key={sev.level} style="margin-right: 1rem;">
+                                            <strong>Severity {sev.level}:</strong> {sev.count}
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-card>
+                    </template>
+
                     <template if:true={groupedByEngine}>
                         <lightning-accordion allow-multiple-sections-open>
                             <template for:each={groupedByEngine} for:item="engineGroup">
