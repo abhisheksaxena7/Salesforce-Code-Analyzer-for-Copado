@@ -108,46 +108,90 @@ export default class ResultTable extends LightningElement {
         });
     }
 
+    // Helper method to create engine object structure
+    createEngineObject(engine, violation) {
+        return {
+            engine: engine,
+            rules: {},
+            violationCount: 0
+        };
+    }
+
+    // Helper method to create rule object structure
+    createRuleObject(violation) {
+        return {
+            engine: violation.engine,
+            resource: violation.resource,
+            rule: violation.rule,
+            severity: violation.severity,
+            tags: violation.tags,
+            violations: []
+        };
+    }
+
+    // Helper method to process violations and group by engine and rule
+    processViolationsByEngine(violations, filterSeverity = null) {
+        const engines = {};
+
+        violations.forEach(violation => {
+            // Apply severity filter if provided
+            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
+                return;
+            }
+
+            if (!engines[violation.engine]) {
+                engines[violation.engine] = this.createEngineObject(violation.engine, violation);
+            }
+
+            if (!engines[violation.engine].rules[violation.rule]) {
+                engines[violation.engine].rules[violation.rule] = this.createRuleObject(violation);
+            }
+
+            engines[violation.engine].rules[violation.rule].violations.push(violation);
+            engines[violation.engine].violationCount += 1;
+        });
+
+        return engines;
+    }
+
+    // Helper method to transform engine objects to array format
+    transformEngineObjectsToArray(engines, includeKey = false) {
+        return Object.values(engines).map(engineObj => {
+            const baseObject = {
+                description: this.engineDescriptions[engineObj.engine] || '',
+                engine: engineObj.engine,
+                label: `${engineObj.engine} (${engineObj.violationCount})`,
+                rules: Object.values(engineObj.rules).map(ruleObj => ({
+                    ...ruleObj,
+                    tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+                })),
+                violationCount: engineObj.violationCount
+            };
+
+            if (includeKey) {
+                baseObject.key = engineObj.engine;
+                baseObject.rules = Object.values(engineObj.rules).map(ruleObj => ({
+                    key: ruleObj.rule,
+                    label: `${ruleObj.rule} (${ruleObj.violations.length})`,
+                    resource: ruleObj.resource,
+                    severity: ruleObj.severity,
+                    tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
+                    violations: ruleObj.violations
+                }));
+            }
+
+            return baseObject;
+        });
+    }
+
     get groupedByEngine() {
         const data = this.filteredJson || this.formattedJson;
         if (!data) {
             return [];
         }
 
-        const engines = {};
-        data.forEach(violation => {
-            if (!engines[violation.engine]) {
-                engines[violation.engine] = {
-                    engine: violation.engine,
-                    rules: {},
-                    violationCount: 0
-                };
-            }
-            if (!engines[violation.engine].rules[violation.rule]) {
-                engines[violation.engine].rules[violation.rule] = {
-                    engine: violation.engine,
-                    resource: violation.resource,
-                    rule: violation.rule,
-                    severity: violation.severity,
-                    tags: violation.tags,
-                    violations: []
-                };
-            }
-            engines[violation.engine].rules[violation.rule].violations.push(violation);
-            engines[violation.engine].violationCount += 1;
-        });
-
-        // Convert rules object to array for each engine, and add description
-        return Object.values(engines).map(engineObj => ({
-            description: this.engineDescriptions[engineObj.engine] || '',
-            engine: engineObj.engine,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                ...ruleObj,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
-            })),
-            violationCount: engineObj.violationCount
-        }));
+        const engines = this.processViolationsByEngine(data);
+        return this.transformEngineObjectsToArray(engines);
     }
 
     get filteredGroupedByEngine() {
@@ -156,43 +200,8 @@ export default class ResultTable extends LightningElement {
             return [];
         }
 
-        const filterSeverity = this.selectedSeverity;
-        const engines = {};
-        data.forEach(violation => {
-            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
-                return;
-            }
-            if (!engines[violation.engine]) {
-                engines[violation.engine] = {
-                    engine: violation.engine,
-                    rules: {},
-                    violationCount: 0
-                };
-            }
-            if (!engines[violation.engine].rules[violation.rule]) {
-                engines[violation.engine].rules[violation.rule] = {
-                    engine: violation.engine,
-                    resource: violation.resource,
-                    rule: violation.rule,
-                    severity: violation.severity,
-                    tags: violation.tags,
-                    violations: []
-                };
-            }
-            engines[violation.engine].rules[violation.rule].violations.push(violation);
-            engines[violation.engine].violationCount += 1;
-        });
-
-        return Object.values(engines).map(engineObj => ({
-            description: this.engineDescriptions[engineObj.engine] || '',
-            engine: engineObj.engine,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                ...ruleObj,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
-            })),
-            violationCount: engineObj.violationCount
-        }));
+        const engines = this.processViolationsByEngine(data, this.selectedSeverity);
+        return this.transformEngineObjectsToArray(engines);
     }
 
     get groupedByRule() {
@@ -203,14 +212,7 @@ export default class ResultTable extends LightningElement {
         const groups = {};
         this.formattedJson.forEach(violation => {
             if (!groups[violation.rule]) {
-                groups[violation.rule] = {
-                    engine: violation.engine,
-                    resource: violation.resource,
-                    rule: violation.rule,
-                    severity: violation.severity,
-                    tags: violation.tags,
-                    violations: []
-                };
+                groups[violation.rule] = this.createRuleObject(violation);
             }
             groups[violation.rule].violations.push(violation);
         });
@@ -409,48 +411,8 @@ export default class ResultTable extends LightningElement {
     }
 
     groupByEngineAndRuleArray(violations) {
-        const filterSeverity = this.selectedSeverity;
-        const engines = {};
-
-        violations.forEach(violation => {
-            if (filterSeverity && String(violation.severity) !== String(filterSeverity)) {
-                return;
-            }
-
-            if (!engines[violation.engine]) {
-                engines[violation.engine] = {
-                    engine: violation.engine,
-                    rules: {},
-                    violationCount: 0
-                };
-            }
-            if (!engines[violation.engine].rules[violation.rule]) {
-                engines[violation.engine].rules[violation.rule] = {
-                    engine: violation.engine,
-                    resource: violation.resource,
-                    rule: violation.rule,
-                    severity: violation.severity,
-                    tags: violation.tags,
-                    violations: []
-                };
-            }
-            engines[violation.engine].rules[violation.rule].violations.push(violation);
-            engines[violation.engine].violationCount += 1;
-        });
-
-        return Object.values(engines).map(engineObj => ({
-            description: this.engineDescriptions[engineObj.engine] || '',
-            key: engineObj.engine,
-            label: `${engineObj.engine} (${engineObj.violationCount})`,
-            rules: Object.values(engineObj.rules).map(ruleObj => ({
-                key: ruleObj.rule,
-                label: `${ruleObj.rule} (${ruleObj.violations.length})`,
-                resource: ruleObj.resource,
-                severity: ruleObj.severity,
-                tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
-                violations: ruleObj.violations
-            }))
-        }));
+        const engines = this.processViolationsByEngine(violations, this.selectedSeverity);
+        return this.transformEngineObjectsToArray(engines, true);
     }
 
     groupByFilename(violations) {
