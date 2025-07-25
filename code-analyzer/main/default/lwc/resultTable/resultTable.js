@@ -92,9 +92,10 @@ export default class ResultTable extends LightningElement {
             }
             engines[v.engine].rules[v.rule].violations.push(v);
         });
-        // Convert rules object to array for each engine
+        // Convert rules object to array for each engine, and add description
         return Object.values(engines).map(engineObj => ({
             engine: engineObj.engine,
+            description: this.engineDescriptions[engineObj.engine] || '',
             rules: Object.values(engineObj.rules)
         }));
     }
@@ -234,5 +235,20 @@ export default class ResultTable extends LightningElement {
             }
             return false;
         });
+    }
+
+    // Mapping of engine names to their short descriptions
+    engineDescriptions = {
+        regex: 'Detects code patterns using regular expressions. Useful for enforcing simple, custom rules.',
+        eslint: 'Analyzes JavaScript and Lightning Web Components for code quality and style issues.',
+        pmd: 'Performs static analysis on Apex, Visualforce. Includes the PMD AppExchange rules.',
+        sfge: 'Salesforce Graph Engine: Advanced static analysis for security, CRUD/FLS, and data flow in Apex.',
+        retirejs: 'Scans JavaScript libraries for known security vulnerabilities.',
+        cpd: 'Copy-Paste Detector: Finds duplicate code blocks in Apex and other supported languages.',
+        flow: 'Analyzes Salesforce Flows for best practices, security, and maintainability issues.'
+    };
+
+    getEngineDescription(engine) {
+        return this.engineDescriptions[engine] || '';
     }
 }

@@ -37,6 +37,9 @@
                                     key={engineGroup.engine}
                                     name={engineGroup.engine}
                                     label={engineGroup.engine}>
+                                    <div class="engine-description" style="margin-bottom: 0.5rem; color: #444; font-style: italic;">
+                                        {engineGroup.description}
+                                    </div>
                                     <!-- Nested accordion for rules -->
                                     <lightning-accordion allow-multiple-sections-open>
                                         <template for:each={engineGroup.rules} for:item="ruleGroup">
