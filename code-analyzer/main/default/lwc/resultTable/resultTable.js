@@ -22,6 +22,7 @@ export default class ResultTable extends LightningElement {
     @track relevantFormattedJson;
     @track selectedSeverity = null;
     @track violationCounts = null;
+    @track searchValue = '';
 
     formattedJson;
     groupBy = DEFAULT_GROUPING;
@@ -501,7 +502,8 @@ export default class ResultTable extends LightningElement {
     }
 
     handleSearch(event) {
-        const searchTerm = event.target.value ? event.target.value.trim().toLowerCase() : '';
+        this.searchValue = event.target.value;
+        const searchTerm = this.searchValue ? this.searchValue.trim().toLowerCase() : '';
 
         if (!searchTerm) {
             this._clearSearch();
@@ -518,6 +520,7 @@ export default class ResultTable extends LightningElement {
     handleClearFilters() {
         this.selectedSeverity = null;
         this.filteredJson = null;
+        this.searchValue = '';
     }
 
     // Transformation function
