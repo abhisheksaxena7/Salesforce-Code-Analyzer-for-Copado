@@ -240,10 +240,14 @@ export default class ResultTable extends LightningElement {
             let fileKey = violation.file || UNKNOWN_FILE;
 
             if (violation.file) {
-                // Find the segment after 'main/default/'
-                const match = violation.file.match(MAIN_DEFAULT_PATTERN);
-                if (match) {
-                    [, metaType, fileKey] = match;
+                // Since violation.file now contains the shortened path (e.g., "lwc/resultTable/resultTable.js"),
+                // we need to extract the metadata type (first part) and the file key (rest)
+                const pathParts = violation.file.split('/');
+                if (pathParts.length >= 2) {
+                    metaType = pathParts[0];
+                    fileKey = pathParts.slice(1).join('/');
+                } else {
+                    fileKey = violation.file;
                 }
             }
 
@@ -523,17 +527,37 @@ export default class ResultTable extends LightningElement {
         this.searchValue = '';
     }
 
+    // Helper method to extract file path after 'default/'
+    extractFileAfterDefault(filePath) {
+        if (!filePath) {
+            return UNKNOWN_FILE;
+        }
+
+        const match = filePath.match(MAIN_DEFAULT_PATTERN);
+        if (match) {
+            const [, metaType, fileKey] = match;
+            return `${metaType}/${fileKey}`;
+        }
+
+        return filePath;
+    }
+
     // Transformation function
     transformJson(parsedJson) {
         if (parsedJson.violations && Array.isArray(parsedJson.violations)) {
             return parsedJson.violations.map((violation, idx) => {
                 const primaryLoc = violation.locations?.[violation.primaryLocationIndex] || violation.locations?.[0] || {};
+                const fullFilePath = primaryLoc.file;
+
+                // Extract file path after 'default/' for display
+                const displayFilePath = this.extractFileAfterDefault(fullFilePath);
+
                 return {
                     allLocations: violation.locations,
                     engine: violation.engine,
-                    file: primaryLoc.file,
+                    file: displayFilePath,
                     fullViolation: violation,
-                    id: `${violation.rule}-${primaryLoc.file}-${primaryLoc.startLine}-${idx}`,
+                    id: `${violation.rule}-${fullFilePath}-${primaryLoc.startLine}-${idx}`,
                     line: primaryLoc.startLine,
                     message: violation.message,
                     resource: violation.resources?.[0] || '',
