@@ -11,13 +11,10 @@
       "versionNumber": "2.0.2.NEXT",
       "dependencies": [
         {
-          "package": "copadoDeployer@21.14"
+          "package": "copadoDeployer@25.0"
         },
         {
-          "package": "copadoDX@4.19"
-        },
-        {
-          "package": "copadoQIF@1.42"
+          "package": "copadoQIF@4.0"
         }
       ]
     }
@@ -28,9 +25,8 @@
   "sourceApiVersion": "55.0",
   "packageAliases": {
     "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
-    "copadoDeployer@21.14": "04t5p000001E97y",
-    "copadoDX@4.19": "04tP7000000057lIAA",
-    "copadoQIF@1.42": "04tP700000002EjIAI",
+    "copadoDeployer@25.0": "04tKA000000cBc4",
+    "copadoQIF@4.0": "04tP7000001gwztIAA",
     "CopadoSFDXAnalyzer@0.1.0-1": "04t8Z000000UeXNQA0",
     "CopadoSFDXAnalyzer@2.0.2-1": "04t8Z000000BooeQAC"
   }
