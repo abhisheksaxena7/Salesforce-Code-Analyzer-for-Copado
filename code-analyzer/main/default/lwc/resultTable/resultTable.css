@@ -1,26 +1,37 @@
+/* Severity Button Styles */
 .severity-1-btn {
-    --slds-c-button-brand-color-background: #ea001e;
-    --slds-c-button-brand-color-border: #ea001e;
+    --slds-c-button-brand-color-background: #d32f2f; /* Critical - Strong Red */
+    --slds-c-button-brand-color-border: #d32f2f;
+    --slds-c-button-brand-color-background-hover: #b71c1c;
+    --slds-c-button-brand-color-border-hover: #b71c1c;
 }
+
 .severity-2-btn {
-    --slds-c-button-brand-color-background: #ffb75d;
-    --slds-c-button-brand-color-border: #ffb75d;
+    --slds-c-button-brand-color-background: #f57c00; /* High - Orange */
+    --slds-c-button-brand-color-border: #f57c00;
+    --slds-c-button-brand-color-background-hover: #e65100;
+    --slds-c-button-brand-color-border-hover: #e65100;
 }
+
 .severity-3-btn {
-    --slds-c-button-brand-color-background: #ffe066;   /* Yellow for Moderate */
-    --slds-c-button-brand-color-border: #ffe066;
+    --slds-c-button-brand-color-background: #fbc02d; /* Moderate - Amber/Yellow */
+    --slds-c-button-brand-color-border: #fbc02d;
+    --slds-c-button-brand-color-background-hover: #f57f17;
+    --slds-c-button-brand-color-border-hover: #f57f17;
 }
+
 .severity-4-btn {
-    --slds-c-button-brand-color-background: #5bc0eb;   /* Blue for Low */
-    --slds-c-button-brand-color-border: #5bc0eb;
+    --slds-c-button-brand-color-background: #388e3c; /* Low - Green */
+    --slds-c-button-brand-color-border: #388e3c;
+    --slds-c-button-brand-color-background-hover: #2e7d32;
+    --slds-c-button-brand-color-border-hover: #2e7d32;
 }
+
 .severity-5-btn {
-    --slds-c-button-brand-color-background: #2e8540;
-    --slds-c-button-brand-color-border: #2e8540;
-}
-.selected-severity-btn {
-    box-shadow: 0 0 0 3px #005fb2;
-    border: 2px solid #005fb2;
+    --slds-c-button-brand-color-background: #1976d2; /* Info - Blue */
+    --slds-c-button-brand-color-border: #1976d2;
+    --slds-c-button-brand-color-background-hover: #1565c0;
+    --slds-c-button-brand-color-border-hover: #1565c0;
 }
 
 /* Selected severity button styles */
@@ -29,9 +40,14 @@
 .severity-3-btn.selected,
 .severity-4-btn.selected,
 .severity-5-btn.selected {
-    box-shadow: 0 0 0 3px #005fb2;
-    border: 2px solid #005fb2;
+    box-shadow: 0 0 0 3px #222;
+    border: 2px solid #222;
+    outline: none;
+    position: relative;
+    z-index: 1;
     font-weight: bold;
+    transform: scale(1.04);
+    transition: transform 0.08s, box-shadow 0.08s;
 }
 
 .clear-filters-btn {
@@ -39,7 +55,7 @@
     border: 1px solid #dddbda;
 }
 
-/* Styles moved from inline HTML */
+/* Button spacing */
 .severity-1-btn,
 .severity-2-btn,
 .severity-3-btn,

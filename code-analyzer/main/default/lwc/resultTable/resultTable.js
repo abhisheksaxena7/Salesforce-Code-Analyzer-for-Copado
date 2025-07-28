@@ -347,7 +347,7 @@ export default class ResultTable extends LightningElement {
 
                 // Determine button variant based on selection state
                 const isSelected = this.selectedSeverity === level;
-                const buttonVariant = isSelected ? 'success' : 'brand';
+                const buttonVariant = 'brand'; // Always use brand variant, let CSS handle the styling
                 const buttonClass = `severity-${level}-btn ${isSelected ? 'selected' : ''}`;
 
                 return {
