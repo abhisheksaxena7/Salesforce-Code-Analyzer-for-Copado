@@ -24,10 +24,6 @@
           {
             "name": "severityThreshold",
             "value": "2"
-          },
-          {
-            "name": "engine",
-            "value": "eslint-lwc,pmd,cpd,retire-js,pmd-appexchange"
           }
         ]
       }
