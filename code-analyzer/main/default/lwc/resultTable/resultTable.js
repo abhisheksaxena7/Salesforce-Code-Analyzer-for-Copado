@@ -412,7 +412,7 @@ export default class ResultTable extends LightningElement {
             return [
                 { fieldName: 'engine', label: 'Engine', type: 'text' },
                 { fieldName: 'rule', label: 'Rule', type: 'text' },
-                { fieldName: 'severity', label: 'Severity', type: 'text' },
+                { fieldName: 'severityLabel', label: 'Severity', type: 'text' },
                 { fieldName: 'line', label: 'Line', type: 'number' },
                 { fieldName: 'message', label: 'Message', type: 'text' }
             ];
@@ -575,7 +575,8 @@ export default class ResultTable extends LightningElement {
                     resource: violation.resources?.[0] || '',
                     rule: violation.rule,
                     severity: violation.severity,
-                    tags: violation.tags
+                    tags: violation.tags,
+                    severityLabel: `${violation.severity} (${SEVERITY_LABELS[violation.severity] || ''})`
                 };
             });
         }
