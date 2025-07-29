@@ -23,7 +23,7 @@ RUN usermod -l func heroku && \
 
 USER func:func
 
-RUN echo y | sf plugins install @salesforce/plugin-code-analyzer@v5.2.0 sfdx-git-delta@v6.16.0
+RUN echo y | sf plugins install @salesforce/plugin-code-analyzer@v5.3.0 sfdx-git-delta@v6.16.0
 
 ENV SFDX_DISABLE_AUTOUPDATE=true \
     SFDX_DISABLE_TELEMETRY=true \
