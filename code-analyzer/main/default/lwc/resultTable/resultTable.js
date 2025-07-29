@@ -173,7 +173,8 @@ export default class ResultTable extends LightningElement {
                 label: `${engineObj.engine} (${engineObj.violationCount})`,
                 rules: Object.values(engineObj.rules).map(ruleObj => ({
                     ...ruleObj,
-                    tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : ''
+                    tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
+                    severityLabel: `${ruleObj.severity} (${SEVERITY_LABELS[ruleObj.severity] || ''})`
                 })),
                 violationCount: engineObj.violationCount
             };
@@ -186,7 +187,8 @@ export default class ResultTable extends LightningElement {
                     resource: ruleObj.resource,
                     severity: ruleObj.severity,
                     tagsString: Array.isArray(ruleObj.tags) ? ruleObj.tags.join(', ') : '',
-                    violations: ruleObj.violations
+                    violations: ruleObj.violations,
+                    severityLabel: `${ruleObj.severity} (${SEVERITY_LABELS[ruleObj.severity] || ''})`
                 }));
             }
 
