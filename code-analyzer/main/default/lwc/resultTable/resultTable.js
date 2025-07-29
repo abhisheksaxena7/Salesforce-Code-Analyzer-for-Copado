@@ -16,6 +16,15 @@ const UNKNOWN_TYPE = 'Unknown';
 const MAIN_DEFAULT_PATTERN = /main\/default\/([^\/]+)\/(.+)/u;
 const SEVERITY_PREFIX = 'sev';
 
+// Add severity labels map after constants
+const SEVERITY_LABELS = {
+    1: 'Critical',
+    2: 'High',
+    3: 'Moderate',
+    4: 'Low',
+    5: 'Info'
+};
+
 export default class ResultTable extends LightningElement {
     @api recordId;
     @track filteredJson = null;
@@ -354,7 +363,8 @@ export default class ResultTable extends LightningElement {
                     buttonClass: buttonClass,
                     buttonVariant: buttonVariant,
                     count: count,
-                    label: `Severity ${level}: ${count}`,
+                    label: `${SEVERITY_LABELS[level]} (${count})`,
+                    title: `Severity ${level}: ${SEVERITY_LABELS[level]}`,
                     level
                 };
             })

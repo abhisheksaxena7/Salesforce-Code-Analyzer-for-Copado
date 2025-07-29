@@ -22,7 +22,7 @@
   "name": "CopadoSFDXAnalyzer",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "55.0",
+  "sourceApiVersion": "64.0",
   "packageAliases": {
     "CopadoSFDXAnalyzer": "0Ho8Z0000004CEDSA2",
     "copadoDeployer@25.0": "04tKA000000cBc4",
