@@ -24,7 +24,7 @@ cat changed-sources/package/package.xml
 ################ Run Code Analyzer only on Changed Metadata  ###############
 copado -p "Running Code Analyzer..."
 exitCode=0
-sf code-analyzer run --rule-selector all --workspace ./changed-sources/ --view detail --severity-threshold 2 --output-file ./output.json || exitCode=$?
+sf code-analyzer run --rule-selector all --workspace ./changed-sources/ --view detail --severity-threshold $severityThreshold --output-file ./output.json || exitCode=$?
 
 ############ Attach Results to the Function results record  ####################
 copado -p "Uploading results..."
