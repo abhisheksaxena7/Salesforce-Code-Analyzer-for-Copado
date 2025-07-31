@@ -4,7 +4,6 @@ set -euo pipefail
 ########## Get Source and Destination Branch names and Checkout Repository #############
 copado -p "Reading parameters..."
 originBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)
-BRANCH="$originBranch"
 destinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)
 
 echo "param originBranch = $originBranch"
@@ -12,7 +11,7 @@ echo "param destinationBranch = $destinationBranch"
 
 copado -p "Cloning repo..."
 copado-git-get $destinationBranch
-copado-git-get $BRANCH
+copado-git-get $originBranch
 
 ########## Read Severity from System Property on the Pipeline record, or default to 2 #############
 if [ -z "${severityThreshold:-}" ] || [ -z "$(echo "$severityThreshold" | tr -d '[:space:]')" ]; then
@@ -24,7 +23,7 @@ fi
 ########### Create delta packages for new, modified or deleted metadata  ############
 copado -p "Generating Diff between the Source and Destination branches..."
 mkdir changed-sources
-sf sgd source delta --to "HEAD" --from "origin/$destinationBranch" --output-dir changed-sources/ --generate-delta --source .
+sf sgd source delta --to "$originBranch" --from "$(git merge-base $originBranch origin/$destinationBranch)" --output-dir changed-sources/ --generate-delta --source .
 echo "Here's the files that have been changes in this US"
 cat changed-sources/package/package.xml
 
