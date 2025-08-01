@@ -4,9 +4,19 @@ set -euo pipefail
 ########## Get Source and Destination Branch names and Checkout Repository #############
 copado -p "Reading parameters..."
 originBranch=$(jq -r '.originBranch' <<< $branchesAndFileIdJson)
-destinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)
-
 echo "param originBranch = $originBranch"
+
+########## Conditional logic for destinationBranch based on branch patterns and parameters ##########
+if [[ "$originBranch" =~ ^promotion/.* ]] && [[ -n "${targetBranch:-}" ]] && [[ -z "${baseBranch:-}" ]]; then
+    destinationBranch="$targetBranch"
+    echo "In promotion context, using targetBranch as the destinationBranch."
+elif [[ "$originBranch" =~ ^feature/.* ]] && [[ -n "${baseBranch:-}" ]] && [[ -z "${targetBranch:-}" ]]; then
+    destinationBranch="$baseBranch"
+    echo "In feature context, using baseBranch as the destinationBranch."
+else
+    destinationBranch=$(jq -r '.destinationBranch' <<< $branchesAndFileIdJson)
+    echo "Context unclear, using destinationBranch from branchesAndFileIdJson"
+fi
 echo "param destinationBranch = $destinationBranch"
 
 copado -p "Cloning repo..."
@@ -23,7 +33,7 @@ fi
 ########### Create delta packages for new, modified or deleted metadata  ############
 copado -p "Generating Diff between the Source and Destination branches..."
 mkdir changed-sources
-sf sgd source delta --to "$originBranch" --from "$(git merge-base $originBranch origin/$destinationBranch)" --output-dir changed-sources/ --generate-delta --source .
+sf sgd source delta --to "origin/$originBranch" --from "$(git merge-base origin/$originBranch origin/$destinationBranch)" --output-dir changed-sources/ --generate-delta --source-dir .
 echo "Here's the files that have been changes in this US"
 cat changed-sources/package/package.xml
 

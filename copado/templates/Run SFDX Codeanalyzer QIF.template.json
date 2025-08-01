@@ -23,7 +23,15 @@
           },
           {
             "name": "severityThreshold",
-            "value": "2"
+            "value": "{$Pipeline.Property.sfdx_scanner_severityThreshold}"
+          },
+          {
+            "name": "targetBranch",
+            "value": "{$Context.JobExecution__r.DataJson.destinationBranchName}"
+          },
+          {
+            "name": "baseBranch",
+            "value": "{$Context.JobExecution__r.DataJson.baseBranch}"
           }
         ]
       }
