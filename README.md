@@ -44,7 +44,7 @@ If the answer is yes, to both of these questions, then yes this is extension is 
     - [Metadata Type and Filename Grouping](#metadata-type-and-filename-grouping)
     - [Severity Filters and Search](#severity-filters-and-search)
     - [Open up the Result record](#open-up-the-result-record)
-- [v5 Release Notes](#v5-release-notes)
+- [v3.4 Release Notes](#v34-release-notes)
   - [🚀 New Features](#-new-features)
     - [Upgrade to Code Analyzer 5.3](#upgrade-to-code-analyzer-53)
     - [Enhanced Results Display](#enhanced-results-display)
@@ -157,7 +157,7 @@ You can use the different severity filters and search box to narrow down the res
 The Result record can be further opened to increase the screen real estate making reading the violations better, as well as use the different severity filters, search and groupings.
 
 
-# v5 Release Notes
+# v3.4 Release Notes
 
 ## 🚀 New Features
 
@@ -177,6 +177,9 @@ The Result record can be further opened to increase the screen real estate makin
 - **Group by File Type**: View results organized by metadata type (Apex classes, LWC components, etc.) and file name breakdown.
 - **Collapsible Sections**: Expand and collapse sections to focus on what matters most
 - **Detailed Information**: See file paths, line numbers, violation messages, and rule documentation links.
+
+### Bug Fixes
+- Fixed major bugs in diff calculation logic.
 
 ## Migration Guide
 - If you're upgrading from 2.x of Code Analyzer for Copado to version to 3.x version, then there are certain changes you'll need to do.
