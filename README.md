@@ -1,90 +1,208 @@
-With this project, you can use Code Analyzer as a quality gate within Copado, and run it on the changed/updated components in your Copado User Story or enforce it before every deployment. All results are available within the Test and Result objects.
+# Code Analyzer for Copado
 
-**Q: What is Salesforce Code Analyzer (Code Analyzer)?**
+With Salesforce Code Analyzer for Copado, you can use Code Analyzer as a **quality gate** in your Copado pipeline. The extension runs analysis only on **changed components**, ensuring efficient code quality and security scanning throughout your development process.
 
-Code Analyzer is a Salesforce CLI plug-in that helps developers write better and more secure code.
+## Is this extension for you?
+Are you a Copado customer? ✅\
+Do you want to use the latest and greatest from Salesforce on quality and security scanning? ✅\
+If the answer is yes, to both of these questions, then yes this is extension is for you.
 
-To inspect your code, Code Analyzer uses multiple code analysis engines, including `PMD, PMD-Appexchange, PMD Copy Paste Detector(CPD), ESLint, RetireJS, and Salesforce Graph Engine`. It identifies potential problems, from inconsistent naming to security vulnerabilities, including advanced vulnerabilities such as lack of Create Read Update Delete/Field-Level Security (CRUD/FLS) checks. Code Analyzer conveys these problems with easy-to-understand results. Run the code analyzer on-command in the CLI, or integrate it into your Continuous Integration/Continuous Development (CI/CD) framework so that you can run it against every code change or on a scheduled basis. Please read more [here.](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/faq/)
+<details>
+<summary>What is Salesforce Code Analyzer?</summary>
 
-# Installing the Extension
+[Salesforce Code Analyzer](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/code-analyzer.html) is a unified static code analysis tool for checking the quality, security, and performance of Salesforce code. It supports multiple engines: `sfge`, `pmd`, `pmd-appexchange`, `flow scanner`, `cpd`, `eslint`, `retire-js`, and `regex`. The tool includes hundreds of customizable rules and is required for AppExchange security review. You can tailor its behavior and define custom rules using a YAML config file.
 
-## v2.x Release Notes
+</details>
+<br/>
 
-- Updated to support SFDX-Analyzer v3.20.0, through which Copado SFDX Analyzer now support the new `PMD-Appexchange` engine out of the box. [Please review official documentation here](https://forcedotcom.github.io/sfdx-scanner/en/v3.x/architecture/pmd-engine/). This is different from the standard PMD rules that run with regular PMD for Salesforce and introduces 32 new PMD rules specific to Security Review. The rules included in pmd-appexchange may help AppExchange partners prepare their managed packages for security review. This new, optional engine contains rules that help you identify common security review failure points, and fix them before you submit your solution for security review.
+**⚠️ DISCLAIMER**
 
-  - ### How do I use pmd-appexchange to prepare my solution for an AppExchange security review?
+**Code Analyzer for Copado is NOT an officially supported tool**
 
-    In addition to the base PMD engine, Code Analyzer also includes a custom PMD variant, pmd-appexchange. The rules included in pmd-appexchange may help AppExchange partners prepare their managed packages for security review. This new, optional engine contains rules that help you identify common security review failure points, and fix them before you submit your solution. This will be enabled by default in v2.1.0+ of Copado SFDX Analyzer. You can verify this by going into `Job Templates > Run SFDX Codeanalyzer QIF > Steps > Run SFDX Code Analyzer > Engine`
+👷 Use it at your own risk
 
-    ![Engines in Job Step](./images/engines-job-step.png)
+<details>
+<summary>Table of Contents</summary>
 
-- Results are now shown in a LWC Component on the Result Modal, no need to download the HTML file to review errors.
+- [Getting Started](#-getting-started)
+  - [Pre-Requisites](#pre-requisites)
+  - [Installation](#installation)
+  - [Post-Installation](#post-installation)
+    - [Picklist Values](#picklist-values)
+    - [Create Extension Records](#create-extension-records)
+    - [Create the Quality Gate](#create-the-quality-gate)
+    - [Configure Pipeline System Property (Optional, but recommended)](#configure-pipeline-system-property-optional-but-recommended)
+    - [Customize other configuration (Optional)](#customize-other-configuration-optional)
+- [Testing the setup](#testing-the-setup)
+- [In-depth setup and walkthrough examples](#in-depth-setup-and-walkthrough-examples)
+  - [Trigger Points](#trigger-points)
+    - [After Commit](#after-commit)
+    - [Before Deployment](#before-deployment)
+    - [After Promotion](#after-promotion)
+  - [Reviewing the scan results](#reviewing-the-scan-results)
+    - [Engine and Rule Grouping](#engine-and-rule-grouping)
+    - [Metadata Type and Filename Grouping](#metadata-type-and-filename-grouping)
+    - [Severity Filters and Search](#severity-filters-and-search)
+    - [Open up the Result record](#open-up-the-result-record)
+- [v5 Release Notes](#v5-release-notes)
+  - [🚀 New Features](#-new-features)
+    - [Upgrade to Code Analyzer 5.3](#upgrade-to-code-analyzer-53)
+    - [Enhanced Results Display](#enhanced-results-display)
+  - [Migration Guide](#migration-guide)
+    - [Delete DFA related metadata](#delete-dfa-related-metadata)
+</details>
 
-- Removed previously used Flows and Apex Classes from Job Templates to make the extension lightweight.
 
-## Upgrading from 1.x version to 2.x version
-
-- The new 2.x version relies on some new capabalities by the Copado Deployer and Quality tools package, hence minimum requirements have changed. Please upgrade those packages to the required version as listed in the [Pre-requisites](#pre-requisites) section
-
-- Upgrading to a new version will overwrite any custom values that were set on the `severityThreshold` and `engine` parameter. Please save them before upgrading and reset after the upgrade.
-
-- After upgrading, navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
+#  Getting Started
 
 ## Pre-Requisites
-* Install Copado v21.14 or higher
-* Install Copado Quality Tools extension v1.42 or higher
-* Install Copado DX Extension v4.19 or higher
-* Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange.
+* Be a Copado CICD Customer on Copado Source Format Pipelines.
+* Minimum Copado Deployer version = 25.0
+* Minimum Copado Quality Tools version = 4.0
 
-## Picklist Values
+## Installation
+- Install the [latest version of Copado SFDX Analyzer](https://success.copado.com/s/listing-detail?recordId=a545p000000Xx1hAAC) from Copado's DevOps Exchange.
 
-* Create the Following Picklist values
-* Object: Extension Configuration, Field: Extension Tool, Value: `sfdx-scanner` & `sfdx-scanner-dfa`
-* Picklist Value Set: Copado Test Tool, Value: `sfdx-scanner` & `sfdx-scanner-dfa`
+- If you're upgrading for version 2.x to this latest version 5.x, then follow the [Migration Guide](#migration-guide), and after following it come back to the [Quality Gates section](#create-the-quality-gate).
 
-## Create The Functions and Job Templates
-Navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
+## Post-Installation
+
+### Picklist Values
+Create the Following Picklist values
+* Setup --> Object Manager --> Extension Configuration --> Field: Extension Tool --> Value: `sfdx-scanner`
+* Setup --> Picklist Value Set --> Copado Test Tool --> Value: `sfdx-scanner`
+
+### Create Extension Records
+Navigate to the “Copado Extensions” tab from the App Launcher, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
 
 ![Generate Extension Records](./images/generate-extension-records.png)
 
-## Configure Function Parameters
+### Create the Quality Gate
+* Navigate to Pipeline Builder.
+* Go to the Quality Gates sub-section from the left-hand side pane.
+* Click on `Create Quality Gate` button, and choose `sfdx-scanner` from the list.
+* You can choose to create it `After Commit - Block`, `After Promotion - Report` or `Before Deployment - Block` depending on the behavior you need.
+* You can configure the environment(s) and/or stage(s) the quality gate should be applied to.
 
-![Function Parameters](./images/function-parameters.png)
+  ![Configure Quality Gate](./images/quality-gate-setup.gif)
 
-* `severityThreshold` - Throws an error when violations are found with equal or greater severity than the provided value. Normalized severity values are: 1 (high), 2 (moderate), and 3 (low). Exit code is the most severe violation. The default OOB value set is `2`. Feel free to edit it as per your project needs.
+* Here's an example of how you can create an after commit quality gate, running on `Service DX Dev 1` environment, with **Advanced filters** so that it is only triggered when at least one metadata item that matches the type **Apex** (`ApexClass`, `ApexTrigger`, `ApexComponent`, `ApexPage`), **LWC, Flow, Messaging Channel** has been committed, and thus only running it when required.
+  ![Configure Quality Gate](./images/create-quality-gate-rule.png)
 
-* `engine` - Specifies one or more engines to run. Submit multiple values as a comma-separated list. Valid values need to be from either of these `eslint,eslint-lwc,eslint-typescript,pmd,retire-js,cpd`.
-The default OOB value is set to `eslint-lwc,pmd,cpd,retire-js,pmd-appexchange`. Feel free to edit it as per your project needs.
+### Configure Pipeline System Property (Optional, but recommended)
+![System Property](./images/severity-threshold-system-property.png)
 
-## Configure the Quality Gate
+* Go to Pipelines from the App Launcher --> open your pipeline --> Settings sub tab --> Click New on System Property --> Property Name and API Name: `sfdx_scanner_severityThreshold`.
+* Valid severity values are: 1 (Critical), 2 (High), 3 (Moderate), 4 (Low), or 5 (Info).
+* If this property is not set, or set incorrectly, then it'll default to severity 2 (High).
+* The Quality gate will throw an error when violations are found with equal or greater severity than the provided value.
+* Leave other values blank, and hit save.
 
-### Create the Quality Gate Rule
-Navigate to the Quality Gate Rules tab and create a new record as follows. The global value set Test Tool should have a value for `SFDX Scanner` as part of this package. It can be created manually if necessary.
+### Customize other configuration (Optional)
+Code Analyzer allows a lot of customization options such as turning engines on/off, adding custom rules, change severity of existing rules, to get started add `code-analyzer.yml` in the root of your project, like a sample is added [here](./code-analyzer.yml), and then the Quality Gate will automatically pick up your configuration. To learn about its complete setup, refer to the [customizing configuration documentation](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/config-custom.html)
 
-![Configure Quality Gate](./images/create-quality-gate-rule.png)
+## Testing the setup
+If you have set up the `After Commit` Quality Gate, like the example in the above configurations, then just perform a commit which contains ApexClass/LWC/ApexComponents/Flows/Messagning Channels on a user story. that is tied to the environment/stage in which your Quality Gate is set up, and the Commit Action will invoke the `Code Analyzer` after every commit.
 
-**Repeat these steps to create a QG for `SFDX-Scanner-DFA` as well.**
+Here's some [test-data](./test-data/) that can be used to test the Quality Gate, and a sample [configuration file](./code-analyzer.yml).
 
-**After that you are all set.**
+# In-depth setup and walkthrough examples
 
-To test the configuration, just perform a commit which contains ApexClass/LWC/AuraBundle on a user story on a SFDX platform Pipeline, and the Commit Action will enforce `SFDX Analyzer` after every commit.
+## Trigger Points
+You can configure Code Analyzer to run at different stages of your deployment pipeline. The supported trigger points are:
 
-Here's some [test-data](./test-data/) that can be used to test both the Quality Gates
+### After Commit
 
-## Demo Screenshots
+<table>
+<tr>
+<td><a href="./images/failed-commit-sfdx.png" target="_blank"><img src="./images/failed-commit-sfdx.png" alt="Failed Commit" width="400"></a></td>
+<td><a href="./images/after-commit-block-promotion.png" target="_blank"><img src="./images/after-commit-block-promotion.png" alt="Block Promotion" width="400"></a></td>
+</tr>
+</table>
 
-### Successful run with no violations and it's result![Successful Commit](./images/successful-commit.png)
-![No Violations](./images/no-violations.png)
+Run Code Analyzer after every commit that happens on your User Stories. This allows you to shift left in your quality and security scanning journey, and if the latest commit on a User Story has failed due to violations, it won't be allowed to be promoted to the next environment.
 
-### Run with Violations
-![Failed Commit](./images/failed-commit-sfdx.png)
-![Violations Modal](./images/violations-modal-sfdx.png)
+### Before Deployment
+![Before Deployment Block](./images/before-deployment-block.png)
+Run Code Analyzer before deployment as a **quality gate**. This analyzes all User Stories in the deployment together. If violations are found, the deployment is blocked.
 
-The Result record can be further opened to read the violations better, as well as wrap text and search to filter violations.
+### After Promotion
+![After Promotion Report](./images/after-promotion-report.png)
+Run Code Analyzer after promotion for **reporting purposes only**. This provides visibility into code quality across all User Stories in the deployment without blocking the process.
 
-![Result Record](./images/violations-result-sfdx.png)
 
-![Wrapped Text](./images/violations-wrapped-search-sfdx.png)
+> **Key Difference**: While User Story analysis runs on individual user stories, deployment-level analysis evaluates the **collective impact** of all User Stories in the deployment, providing a comprehensive view of code quality across the entire Promotion.
 
-### Run with Violations for DFA
-![Result Record DFA](./images/violations-modal-dfa.png)
+## Reviewing the scan results
+
+
+### Engine and Rule Grouping
+![Engine/Rule Grouping](./images/violations-gpengine-modal.gif)
+
+There are two groupings for the results, the first one as seen in the image above is by **Engine/Rule**. This allows you to view the violations grouped by the Engine, and then by Rule. This is helpful to see just specific engine or rule errors.
+
+### Metadata Type and Filename Grouping
+![Type/FileName Grouping](./images/violations-gptype-modal.gif)
+
+You can also switch to the **Type/Filename** grouping from the drop down, this is better if you just want to focus on specific metadata types, or look into all errors in a single file.
+
+### Severity Filters and Search
+![Filter/Search](./images/violations-filter-search.gif)
+
+You can use the different severity filters and search box to narrow down the results.
+
+### Open up the Result record
+![Result Record](./images/violations-result-record.gif)
+
+The Result record can be further opened to increase the screen real estate making reading the violations better, as well as use the different severity filters, search and groupings.
+
+
+# v5 Release Notes
+
+## 🚀 New Features
+
+### Upgrade to Code Analyzer 5.3
+- **New Engines**: Regex, Flow are the new engines that are supported. [See all supported engines](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/engines.html)
+- **SFGE**: Can be run with a single quality gate, no need to create another Quality Gate to run Data Flow Analysis.
+- **Custom Config File** - v5 introduces a configuration YAML file (code-analyzer.yml) which you can use to configure top-level properties and customize rules and engines, including adding custom rules. [See Customize the v5 Configuration for details.](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/config-custom.html)
+
+### Enhanced Results Display
+- **Clean, Modern Interface**: Results are displayed in an organized, easy-to-read format within the Result Modal
+- **Smart Organization**: Results are automatically grouped and organized for easy navigation
+- **Quick Search**: Find specific violations instantly by typing in the search box - searches across files, rules, messages, engines.
+- **Severity Filtering**: Click on colored buttons to filter by severity level (Critical, High, Moderate, Low, Info)
+- **Dynamic Counts**: See real-time counts of violations that update as you filter
+- **One-Click Reset**: Clear all filters with a single button click
+- **Group by Engine**: View results organized by analysis tool (PMD, ESLint, etc.) with rule breakdowns
+- **Group by File Type**: View results organized by metadata type (Apex classes, LWC components, etc.) and file name breakdown.
+- **Collapsible Sections**: Expand and collapse sections to focus on what matters most
+- **Detailed Information**: See file paths, line numbers, violation messages, and rule documentation links.
+
+## Migration Guide
+- If you're upgrading from 2.x of Code Analyzer to version to 5.x version, then there are certain changes you'll need to do.
+
+- The new 5.x version relies on some new capabalities by the Copado Deployer and Quality tools package, hence minimum requirements have changed. Please upgrade those packages to the required version as listed in the [Pre-requisites](#pre-requisites) section.
+
+- After upgrading, navigate to the “Copado Extensions” tab, select “CopadoSFDXAnalyzer” and press the button “Generate Extension Records”.
+
+- After Generating the new records, go to "Functions > Run SFDX Code Analyzer QIF > Configuration sub-tab", and if the Callback Type is set to Apex, set it to 'None'.
+
+- You likely are using the legacy Quality Gate Rules. Delete the older Quality Gate Rules, and Quality Gate Rule Conditions by going to the Quality Gates tab, and searching for the SFDX Scanner Quality Gates you had created. There should likely be *two*, one for DFA, and one for other engines. So repeat this step for the other Quality Gate Rule as well.
+
+  ![Legacy QGR](./images/legacy-quality-gate-rule.png)
+
+### Delete DFA related metadata
+DFA analysis using the `SFGE` engine, is now part of the main quality gate, hence we need to delete the older references.
+- Go to App Launcher --> Functions -->  Run SFDX Code Analyzer DFA QIF --> Delete.
+
+- Go to App Launcher --> Job Templates --> Run SFDX Codeanalyzer DFA QIF --> Switch to steps sub tab --> Delete all the steps one by one --> Finally delete the Job Template.
+
+- Go to App Launcher --> Extension Configuration --> SFDX Scanner Config DFA --> Deactivate --> Delete
+
+- Go to setup --> Picklist Value Sets --> Copado Test Tool --> Delete `sfdx-scanner-dfa` value --> Replace with blank.
+
+- Go to setup --> Object Manager --> Extension Configuration --> Field: Extension Tool --> Delete `sfdx-scanner-dfa` value --> Replace with blank.
+
+- Once all of this is deleted, go back to create [new Quality Gates](#create-the-quality-gate) section and continue.
+
+
