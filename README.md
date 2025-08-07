@@ -179,7 +179,7 @@ The Result record can be further opened to increase the screen real estate makin
 - **Detailed Information**: See file paths, line numbers, violation messages, and rule documentation links.
 
 ## Migration Guide
-- If you're upgrading from 2.x of Code Analyzer to version to 5.x version, then there are certain changes you'll need to do.
+- If you're upgrading from 2.x of Code Analyzer for Copado to version to 3.x version, then there are certain changes you'll need to do.
 
 - The new 5.x version relies on some new capabalities by the Copado Deployer and Quality tools package, hence minimum requirements have changed. Please upgrade those packages to the required version as listed in the [Pre-requisites](#pre-requisites) section.
 
