@@ -90,6 +90,10 @@ Navigate to the “Copado Extensions” tab from the App Launcher, select “Cop
   ![Configure Quality Gate](./images/create-quality-gate-rule.png)
 
 ### Configure Pipeline System Property (Optional, but recommended)
+> **ℹ️ NOTE:**
+> The default severity threshold is **2 (High)** unless you overwrite it.
+> To overwrite it, follow the steps mentioned below.
+
 ![System Property](./images/severity-threshold-system-property.png)
 
 * Go to Pipelines from the App Launcher --> open your pipeline --> Settings sub tab --> Click New on System Property --> Property Name and API Name: `sfdx_scanner_severityThreshold`.
@@ -99,10 +103,16 @@ Navigate to the “Copado Extensions” tab from the App Launcher, select “Cop
 * Leave other values blank, and hit save.
 
 ### Customize other configuration (Optional)
-Code Analyzer allows a lot of customization options such as turning engines on/off, adding custom rules, change severity of existing rules, to get started add `code-analyzer.yml` in the root of your project, like a sample is added [here](./code-analyzer.yml), and then the Quality Gate will automatically pick up your configuration. To learn about its complete setup, refer to the [customizing configuration documentation](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/config-custom.html)
+Code Analyzer supports extensive customization, including enabling or disabling engines, adding custom rules, and adjusting rule severities.
+
+To configure these options, add a `code-analyzer.yml` file to the root of your project. See a [sample file here](./code-analyzer.yml). Commit this file to all long-lived environment branches in your repository (e.g., `main`, `qa`, `uat`).
+
+After this file is present in your environment branches, any new feature or promotion branches created from them will automatically inherit the configuration. The Quality Gate will use these settings without further action.
+
+For more details on available configuration options, see the [customizing configuration documentation](https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/config-custom.html).
 
 ## Testing the setup
-If you have set up the `After Commit` Quality Gate, like the example in the above configurations, then just perform a commit which contains ApexClass/LWC/ApexComponents/Flows/Messagning Channels on a user story. that is tied to the environment/stage in which your Quality Gate is set up, and the Commit Action will invoke the `Code Analyzer` after every commit.
+If you have set up the `After Commit` Quality Gate, like the example in the above configurations, then just perform a commit which contains ApexClass/LWC/ApexComponents/Flows/Messaging Channels on a user story. that is tied to the environment/stage in which your Quality Gate is set up, and the Commit Action will invoke the `Code Analyzer` after every commit.
 
 Here's some [test-data](./test-data/) that can be used to test the Quality Gate, and a sample [configuration file](./code-analyzer.yml).
 
@@ -131,7 +141,9 @@ Run Code Analyzer before deployment as a **quality gate**. This analyzes all Use
 Run Code Analyzer after promotion for **reporting purposes only**. This provides visibility into code quality across all User Stories in the deployment without blocking the process.
 
 
-> **Key Difference**: While User Story analysis runs on individual user stories, deployment-level analysis evaluates the **collective impact** of all User Stories in the deployment, providing a comprehensive view of code quality across the entire Promotion.
+> **Key Difference:**
+> - **After Commit:** Scans only the changes in a single user story and its feature branch since it was created from the base branch.
+> - **Before Deployment / After Promotion:** Scans all user stories together in the promotion, showing the overall code quality impact. Under the hood, it runs a compaison of all changes in the promotion branch since it split from the destination branch.
 
 ## Reviewing the scan results
 
