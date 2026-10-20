@@ -1,0 +1,11 @@
+engines:
+  apexguru:
+    disable_engine: true
+  sfge:
+    disable_engine: true
+  cpd:
+    disable_engine: true
+  retire-js:
+    disable_engine: true
+  uibundle:
+    disable_engine: true

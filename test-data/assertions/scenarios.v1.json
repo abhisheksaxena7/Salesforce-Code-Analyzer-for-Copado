@@ -1,0 +1,350 @@
+{
+  "schemaVersion": 1,
+  "fixtureVersion": 2,
+  "localEnginePins": {
+    "@salesforce/plugin-code-analyzer": "5.16.0",
+    "sfdx-git-delta": "7.5.0"
+  },
+  "fixtureSets": {
+    "full": [
+      "force-app"
+    ],
+    "clean": [
+      "force-app/main/default/classes/PermissionsException.cls",
+      "force-app/main/default/classes/PermissionsException.cls-meta.xml"
+    ],
+    "critical": [
+      "force-app/main/default/classes/CriticalConstructorDml.cls",
+      "force-app/main/default/classes/CriticalConstructorDml.cls-meta.xml"
+    ],
+    "non-apex": [
+      "force-app/main/default/lwc",
+      "force-app/main/default/flows"
+    ],
+    "class-trigger": [
+      "force-app/main/default/classes/AccountOperations.cls",
+      "force-app/main/default/classes/AccountOperations.cls-meta.xml",
+      "force-app/main/default/triggers"
+    ],
+    "severity4": [
+      "force-app/main/default/classes/PermissionsException.cls",
+      "force-app/main/default/classes/PermissionsException.cls-meta.xml",
+      "force-app/main/default/flows/TestUserDataSharingViolationExact.flow-meta.xml"
+    ],
+    "old-api": [
+      "force-app/main/default/classes/PermissionsException.cls",
+      "variants/PermissionsException.api55.cls-meta.xml"
+    ]
+  },
+  "assembly": {
+    "old-api": {
+      "variants/PermissionsException.api55.cls-meta.xml": "force-app/main/default/classes/PermissionsException.cls-meta.xml"
+    },
+    "configDestination": "code-analyzer.yaml (preserve .yml for .yml cases)"
+  },
+  "policy": {
+    "remoteExactCounts": false,
+    "remoteRuntimeRules": "Only assert with a separately validated org/runtime profile; full capability alone does not imply DmlInALoop",
+    "missingRequiredCapability": "NOT_VERIFIED, never PASS",
+    "historicalCounts": "272/262 etc. are historical observations, not expectations for these fixtures",
+    "engineExecution": "Do not infer engines executed from violations alone",
+    "localExactCounts": {
+      "status": "NOT_ASSERTED",
+      "reason": "Record observed totals, but assert rule/severity presence, threshold behavior and report consistency instead of fixed engine-dependent totals"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "TC14",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 1,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage",
+        "pmd-ApexCSRF-severity-1-present",
+        "all-five-severities-present"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC1",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC2",
+      "fixtureSet": "full",
+      "config": "disable-apexguru.yaml",
+      "severityThreshold": 2,
+      "apexguruExpectation": "disabled",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC3",
+      "fixtureSet": "full",
+      "config": "disable-sfge-cpd-flow.yml",
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only",
+      "forbiddenEngines": [
+        "sfge",
+        "cpd",
+        "flow"
+      ]
+    },
+    {
+      "id": "TC4",
+      "fixtureSet": "full",
+      "config": "only-apexguru.yaml",
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "profile-dependent",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only",
+      "allowedViolationEngines": [
+        "apexguru"
+      ],
+      "requiresRemoteFindingProfile": true
+    },
+    {
+      "id": "TC5",
+      "fixtureSet": "full",
+      "config": "force-apexguru.yaml",
+      "severityThreshold": 2,
+      "apexguruExpectation": "static",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC6",
+      "fixtureSet": "class-trigger",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC7",
+      "fixtureSet": "non-apex",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "no-apex",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC8",
+      "fixtureSet": "clean",
+      "config": "disable-flow.yaml",
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-commit",
+      "expectedGateOutcome": "pass",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC9",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-promotion",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC10",
+      "fixtureSet": "severity4",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-promotion",
+      "expectedGateOutcome": "pass",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC11",
+      "fixtureSet": "severity4",
+      "config": null,
+      "severityThreshold": 4,
+      "apexguruExpectation": "full",
+      "lifecycle": "after-promotion",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "TC12",
+      "fixtureSet": "old-api",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "static",
+      "lifecycle": "before-deployment",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only",
+      "expectedDeployOutcome": "not-started"
+    },
+    {
+      "id": "TC13",
+      "fixtureSet": "old-api",
+      "config": null,
+      "severityThreshold": 1,
+      "apexguruExpectation": "static",
+      "lifecycle": "before-deployment",
+      "expectedGateOutcome": "pass",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only",
+      "expectedDeployOutcome": "successful"
+    },
+    {
+      "id": "3a",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "missing-session",
+      "lifecycle": "direct-function",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "3b",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "invalid-session",
+      "lifecycle": "direct-function",
+      "expectedGateOutcome": "fail",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage",
+        "warning-length-at-most-240",
+        "no-STRING_TOO_LONG",
+        "local-report-preserved"
+      ],
+      "localCoverage": "function-contract-only"
+    },
+    {
+      "id": "3c",
+      "fixtureSet": "full",
+      "config": null,
+      "severityThreshold": 2,
+      "apexguruExpectation": "none",
+      "lifecycle": "ui",
+      "expectedGateOutcome": "render",
+      "liveVerification": "NOT_RUN_WITH_VERSIONED_FIXTURES",
+      "assertions": [
+        "report-schema",
+        "counts-match-violations",
+        "no-secret-leakage",
+        "grouping",
+        "severity-filter",
+        "empty-report",
+        "unknown-engine"
+      ],
+      "localCoverage": "pure-viewer-transformation-only"
+    }
+  ]
+}

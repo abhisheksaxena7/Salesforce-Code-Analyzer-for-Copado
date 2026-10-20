@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Salesforce App",
   "scripts": {
-    "lint": "eslint **/{aura,lwc}/**",
+    "lint": "eslint \"force-app/**/{aura,lwc}/**\"",
     "test": "npm run test:unit",
     "test:unit": "sfdx-lwc-jest",
     "test:unit:watch": "sfdx-lwc-jest --watch",
@@ -13,7 +13,9 @@
     "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
     "prettier:verify": "prettier --list-different \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
     "postinstall": "husky install",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "verify:local": "bash scripts/verify-local.sh",
+    "verify:container": "bash scripts/verify-local.sh --mode container"
   },
   "devDependencies": {
     "@lwc/eslint-plugin-lwc": "^1.1.2",
@@ -34,7 +36,7 @@
     "**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}": [
       "prettier --write"
     ],
-    "**/{aura,lwc}/**": [
+    "force-app/**/{aura,lwc}/**": [
       "eslint"
     ]
   }

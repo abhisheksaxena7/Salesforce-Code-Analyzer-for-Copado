@@ -17,6 +17,7 @@ coverage/
 # Logs
 logs
 *.log
+copado/output.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -38,5 +39,12 @@ $RECYCLE.BIN/
 
 # Local environment variables
 .env
-.github/
-.vscode/
+.agentia/
+.agents/
+
+# Local Python verification cache
+__pycache__/
+*.pyc
+
+# Local Function credentials
+copado/local/run.env

@@ -8,3 +8,5 @@
 .vscode
 
 coverage/
+# Analyzer fixtures contain intentional findings; preserve their reviewed bytes.
+test-data/**

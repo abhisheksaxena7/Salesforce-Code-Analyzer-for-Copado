@@ -1,0 +1,6 @@
+{
+  "name": "CopadoSFDXAnalyzer",
+  "templates": ["Run SFDX Codeanalyzer QIF_1"],
+  "functions": ["Run_CodeAnalyzer_QIF"],
+  "configurations": ["sfdx-scanner"]
+}

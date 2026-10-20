@@ -1,0 +1,45 @@
+{
+  "name": "Run SFDX Code Analyzer QIF",
+  "apiname": "Run_CodeAnalyzer_QIF",
+  "description": "Runs local Salesforce Code Analyzer engines and optional ApexGuru analysis for a quality gate.",
+  "imagename": "ubxxrh6cjl2pkhy5iaingoykadytnn-sfdx-scanner:v6",
+  "parameters": [
+    {
+      "name": "git_json",
+      "defaultValue": "{$Context.Repository.Credential}"
+    },
+    {
+      "name": "severityThreshold",
+      "defaultValue": "{$Pipeline.Property.sfdx_scanner_severityThreshold}"
+    },
+    {
+      "name": "branchesAndFileIdJson",
+      "defaultValue": "{$Context.Apex.copadoQuality.RetrieveBranchesAndFileIdForPmdScan}"
+    },
+    {
+      "name": "baseBranch",
+      "defaultValue": "{$Context.JobExecution__r.DataJson.baseBranch}"
+    },
+    {
+      "name": "targetBranch",
+      "defaultValue": "{$Context.JobExecution__r.DataJson.destinationBranchName}"
+    },
+    {
+      "name": "apexGuruSessionId",
+      "defaultValue": "{$Source.Credential.SessionId}",
+      "sensitive": true
+    },
+    {
+      "name": "apexGuruEndpoint",
+      "defaultValue": "{$Source.Credential.Endpoint}"
+    },
+    {
+      "name": "repositoryId",
+      "defaultValue": "{$Pipeline.Git_Repository__r.Id}",
+      "required": false
+    }
+  ],
+  "size": "S",
+  "type": "Custom",
+  "version": "1"
+}

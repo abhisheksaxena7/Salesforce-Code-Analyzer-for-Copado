@@ -1,0 +1,51 @@
+{
+  "name": "Run SFDX Codeanalyzer QIF",
+  "apiname": "Run SFDX Codeanalyzer QIF_1",
+  "type": "Custom",
+  "description": null,
+  "version": 1,
+  "volumeoptions": null,
+  "steps": [
+    {
+      "name": "Run SFDX Code Analyzer",
+      "apiname": "Run SFDX Codeanalyzer QIF_1_Run SFDX Code Analyzer_1",
+      "type": "Function",
+      "customtype": "Function",
+      "resultViewerComponent": "copado_labs:resultTable",
+      "config": {
+        "functionName": "Run_CodeAnalyzer_QIF",
+        "parameters": [
+          {
+            "name": "git_json",
+            "value": "{$Context.Repository.Credential}"
+          },
+          {
+            "name": "branchesAndFileIdJson",
+            "value": "{$Context.Apex.copadoQuality.RetrieveBranchesAndFileIdForPmdScan}"
+          },
+          {
+            "name": "severityThreshold",
+            "value": "{$Pipeline.Property.sfdx_scanner_severityThreshold}"
+          },
+          {
+            "name": "targetBranch",
+            "value": "{$Context.JobExecution__r.DataJson.destinationBranchName}"
+          },
+          {
+            "name": "baseBranch",
+            "value": "{$Context.JobExecution__r.DataJson.baseBranch}"
+          },
+          {
+            "name": "apexGuruSessionId",
+            "value": "{$Source.Credential.SessionId}",
+            "sensitive": true
+          },
+          {
+            "name": "apexGuruEndpoint",
+            "value": "{$Source.Credential.Endpoint}"
+          }
+        ]
+      }
+    }
+  ]
+}

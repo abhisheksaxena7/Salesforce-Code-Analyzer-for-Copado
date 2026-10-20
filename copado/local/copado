@@ -1,0 +1,570 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import logging
+import os
+import re
+import shlex
+import shutil
+import signal
+import socket
+import subprocess
+from datetime import datetime
+
+import sys
+import time
+from threading import Timer
+
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
+sigterm_received = False
+APP_FOLDER = "/app"
+
+
+class Context:
+    """ Class to hold both the environment context AND the runtime context """
+    SCRIPT_PATHNAME = '/tmp/cf_function.sh'
+    LOG_PATHNAME = '/tmp/cf_function.txt'
+    MAX_LOGGING_BYTES = 104857600  # up to 100mb of logs
+
+    SF_API_VERSION = os.getenv('SF_API_VERSION') or '50.0'
+    ALLOWED_IMAGES = os.environ.get('ALLOWED_IMAGES')
+    WATCHDOG_THREAD_INTERVAL = int(os.getenv('WATCHDOG_THREAD_INTERVAL') or '60')
+    PROJECT_ID = os.environ.get('PROJECT_ID')
+    REGION_ID = os.environ.get('REGION_ID')
+    CLUSTER_ID = os.environ.get('CLUSTER_ID')
+    CLUSTER_NAMESPACE = os.environ.get('CLUSTER_NAMESPACE')
+    PUBLISHING_TOPIC = os.environ.get('PUBLISHING_TOPIC')
+    PUBLISHING_STATUS_JOB_TOPIC = os.environ.get('PUBLISHING_STATUS_JOB_TOPIC')
+    JOB_TIMEOUT = os.environ.get('JOB_TIMEOUT')
+    TESTING_MODE = os.environ.get('CF_COPADO_TESTING_MODE')
+
+    # this env var is optional to set, a fallback. Salesforce sends the package namespace as a header
+    NAMESPACE = os.environ.get('CF_NAMESPACE') or ''
+
+    SHELL_SCRIPT_ERROR_MESSAGE = "Copado detected an error in the script: exit code=$? occurred on line $LINENO"
+
+    LOGGING_PREFIX = 'CopadoFunction '
+
+    def __init__(self, request=None):
+        self.session_id = os.environ['CF_SF_SESSIONID']
+        self.salesforce_endpoint = os.environ['CF_SF_ENDPOINT']
+        self.result_id = os.environ['CF_RESULTID']
+        self.request = request
+        self.watchdog_process = None  # handy holder to prevent a global variable
+
+    @classmethod
+    def set(cls, session_id, salesforce_endpoint, result_id, request):
+        os.environ['CF_SF_SESSIONID'] = session_id
+        os.environ['CF_SF_ENDPOINT'] = salesforce_endpoint
+        os.environ['CF_RESULTID'] = result_id
+        return Context(request=request)
+
+    @classmethod
+    def configure_logging(cls):
+        class ContextFilter(logging.Filter):
+            def filter(self, record):
+                record.name = Context.LOGGING_PREFIX
+                return True
+
+        logging.getLogger().addFilter(ContextFilter())
+        logging.basicConfig(level=logging.INFO, format='%(name)s%(levelname)s %(message)s')
+
+
+class LogRetry(Retry):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.total < 3:
+            logging.warning('retrying...')
+
+
+def upload_logs(context):
+    logging.info('Uploading logs...')
+    if os.path.getsize(Context.LOG_PATHNAME) > 0:
+        # always add the pre-defined salesforce sessionId
+        context.request['parameters'].append({"name": 'CF_SF_SESSIONID', "value": context.session_id,
+                                              "sensitive": True})
+        censor_sensitive_variables(Context.LOG_PATHNAME, context.request['parameters'])
+        upload_file_to_salesforce(context, Context.LOG_PATHNAME, f'Function Logs for {context.result_id}.txt')
+
+
+def get_http_session():
+    """ set up an http session with retries for certain types of http errors """
+    sess = requests.Session()
+
+    retries = LogRetry(total=3, backoff_factor=2, status_forcelist=[500, 502, 503, 504])
+    sess.mount('https://', HTTPAdapter(max_retries=retries))
+    return sess
+
+
+def salesforce_api_call(context, action, parameters=None, method='get', data=None, headers=None, files=None,
+                        return_response_object=False):
+    """
+    Helper function to make calls to Salesforce REST API. Example:
+        contentVersion = sfApiCall('/services/data/<APIVERSION>/sobjects/ContentVersion', method='post', data={
+            'Title': 'Important attached document',
+            'ContentUrl': 'https://drive.google.com/drive/folders/0B60dm9TFrvQrTDVVYnp3QldvWFE'
+        })
+    """
+    if context.TESTING_MODE:
+        return {}
+    action = action.replace('<APIVERSION>', Context.SF_API_VERSION)
+    sess = get_http_session()
+    all_headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {context.session_id}'
+    }
+    all_headers.update(headers or {})
+    result = sess.request(method, context.salesforce_endpoint + action, headers=all_headers, params=parameters or {},
+                          timeout=30, json=data, files=files)
+    if return_response_object:
+        return result
+    elif result.status_code < 300:
+        if 'application/json' in result.headers.get('content-type', ''):
+            return result.json()
+        return result.content
+    else:
+        raise Exception(f'Salesforce api error: {result.status_code} when calling {result.url} : {result.content}')
+
+
+def prepare_copado_function(request_file=None, request_json=None):
+    """
+    parse the details of the requestFile or requestJson
+    write script to SCRIPT_PATHNAME
+    request salesforce session
+    set env variables (to be used by the Function and setstatus/uploadfile)
+    remove env variables we do not want to expose to the Copado Function
+    """
+    request = request_file and json.load(request_file) or json.loads(request_json)
+    result_id = request['resultId']
+    headers = request['headers']
+
+    # if  "#!..." is not specified, assume it is a shell script and prepend #!/bin/bash and add error reporting
+    if not re.match(r'\s*#!', request['script'], re.MULTILINE):
+        request['script'] = f'#!/bin/bash\ntrap \'echo "{Context.SHELL_SCRIPT_ERROR_MESSAGE}"' \
+                            + f'\' ERR\nset -euo pipefail\n{request["script"]}'
+
+    with open(Context.SCRIPT_PATHNAME, 'w') as f:
+        f.write(request['script'])
+    os.chmod(Context.SCRIPT_PATHNAME, 0o700)  # mark as executable
+
+    logging.info(f'{headers.get("logstring")}prepare; options={request["options"]}')
+
+    session_id, salesforce_endpoint = headers.get('sessionid'), headers.get('endpoint')
+
+    context = Context.set(session_id, salesforce_endpoint, result_id, request)
+
+    try:
+        for param in request['parameters']:
+            os.environ[param['name']] = str(param.get('value') or '')
+
+        # special parameters like
+        # git_json={"type": "http", "url": "https://git.com/user/repo.git", "username": "u@a.b", "password": "p"}
+        # git_json={"type": "ssh", "url": "https://git.com/user/repo.git", "sshKey": "key"}
+        # are also treated as individual variables (if they are not already declared in the function)
+        if os.environ.get('git_json'):
+            git_json = json.loads(os.environ['git_json'])
+            for k, v in git_json.items():
+                is_sensitive = k in ('username', 'password', 'encryptedheaders')
+                k, v = f'git_json_{k}', str(v or '')
+                os.environ.setdefault(k, v)
+                request['parameters'].append({"name": k, "value": v, "sensitive": is_sensitive})
+
+    except Exception as e:
+        logging.exception(e)
+        logging.info("%s request=%s", context.request["headers"].get("logstring"), json.dumps(request))
+        set_finished_status(context, 'fatal',
+                            error_message='There was an error in the parameter names or git_json value',
+                            is_success=False)
+        sys.exit(0)  # always finish "successfully"
+
+    return request, context
+
+
+def run_copado_function(context):
+    """
+    Start watchdog thread, to refresh session, send an (empty) event, and control timeout (depends on tech?)
+    setStatus('started')
+    Execute Copado Function
+    setStatus('done') or setStatus('done')
+    uploadFile(logFileName)
+    """
+    function_return_code = -2
+
+    set_status(context, 'Started')
+    logging.info("Starting thread scheduling...")
+
+    watchdog_thread_schedule_cancel = False
+
+    def watchdog_thread_schedule():
+        context.watchdog_process = Timer(Context.WATCHDOG_THREAD_INTERVAL, watchdog_thread)
+        context.watchdog_process.start()
+
+    def watchdog_thread():
+        if watchdog_thread_schedule_cancel:
+            return
+        try:
+            set_status(context)
+        except Exception as e:
+            logging.exception(e)
+        watchdog_thread_schedule()
+
+    watchdog_thread_schedule()
+
+    try:
+        # Obtain the 90% of available memory in Kb
+        memory_limit = int((int(os.environ.get("MEMORY_LIMIT", 0)) * 0.9) / 1024)
+        logging.info(f'{context.request["headers"].get("logstring")};[ULIMIT] memory_limit: {memory_limit}')
+
+        cmd_ulimit = f'ulimit -v {memory_limit};' if memory_limit else ''
+        logging.info(f"[ULIMIT] cmd_ulimit: {cmd_ulimit}")
+
+        # cmd = 'while IFS= read -r line; do echo "$(date \'+%H:%M:%S\')"$\'\t\'"$line"; done'
+        cmd = f'{cmd_ulimit} set -euo pipefail; {Context.SCRIPT_PATHNAME} 2>&1'
+
+        logging.info(f"[ULIMIT] cmd: {cmd}")
+
+        logging.info('---------------------------------------')
+
+        start = time.time()
+        proc = subprocess.Popen(
+            cmd,
+            shell=True,
+            executable='/bin/bash',
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding="utf-8"
+        )
+        os.set_blocking(proc.stdout.fileno(), False)
+        return_code = None
+        my_log_file = open(Context.LOG_PATHNAME, "a")
+        logging.info(f"Preparing log file...{Context.LOG_PATHNAME}")
+
+        while not sigterm_received and disk_usage_if_exists_app_folder():
+            current_time = datetime.now().strftime(f'%H:%M:%S')
+            proc_line = proc.stdout.readline()
+            if proc_line and proc_line.strip():
+                line_to_write = f"{current_time}\t{proc_line}"
+                sys.stdout.write(line_to_write)
+                sys.stdout.flush()
+                my_log_file.write(line_to_write)
+            return_code = proc.poll()
+            if return_code is not None:
+                logging.info(f"Process finished with status code: {return_code}")
+                my_log_file.close()
+                break
+
+        if not my_log_file.closed:
+            my_log_file.close()
+        if sigterm_received:
+            logging.warning("Killing process by timeout")
+            proc.kill()
+
+        function_return_code = return_code
+        logging.info('---------------------------------------')
+        logging.info(
+            f'{context.request["headers"].get("logstring")};{function_return_code and "error" or "done"};'
+            f"{int(time.time() - start)};{return_code};completedProcess=CompletedProcess(args='{cmd}', "
+            f"returncode={return_code})")
+
+        watchdog_thread_schedule_cancel = True
+        context.watchdog_process.cancel()
+
+        upload_logs(context)
+
+        if sigterm_received:
+            set_finished_status(
+                context,
+                'Cancelled',
+                is_success=False,
+                error_message="The function execution was cancelled by the user or exceeded the duration limit."
+            )
+        elif os.path.exists(APP_FOLDER) and shutil.disk_usage(APP_FOLDER).free == 0:
+            set_finished_status(
+                context,
+                'Disk Full',
+                is_success=False,
+                error_message="No space on disk."
+            )
+        elif not function_return_code:
+            set_finished_status(context, 'Completed', is_success=True)
+        else:
+            # NOTE: do not set errorMessage, since it would overwrite the user's error (if any)
+            set_finished_status(context, 'Error', is_success=False)
+
+    except Exception as e:
+        logging.exception(e)
+        set_finished_status(context, 'Warning', error_message='There was an error after the function finished',
+                            is_success=False)
+    finally:
+        context.watchdog_process.cancel()
+    logging.info('Finalized')
+
+    return function_return_code
+
+
+def disk_usage_if_exists_app_folder():
+    exists_folder = os.path.exists(APP_FOLDER)
+    condition = True
+    if exists_folder:
+        condition = shutil.disk_usage(APP_FOLDER).free != 0
+    return condition
+
+
+def set_finished_status(context, status, error_message=None, result_data=None, is_success=False):
+    endpoint = '/services/apexrest/copado/FunctionWebEvent'
+    if not Context.NAMESPACE:
+        endpoint = endpoint.replace('/copado/', '/')
+
+    if os.path.exists('/tmp/cf_function_error_message.txt'):
+        with open('/tmp/cf_function_error_message.txt', "r") as file:
+            error_message = file.read()
+
+    if os.path.exists('/tmp/cf_function_result_data.txt'):
+        with open('/tmp/cf_function_result_data.txt', "r") as file:
+            result_data = file.read()
+
+    error_if_any = error_message and f" error={error_message!r}" or ''
+    logging.info(f'setting status {status or ""!r}{error_if_any} (finished)')
+
+    post_fields = {
+        "result_id": context.result_id,
+        "status": status,
+        "result_data": result_data,
+        "error_message": error_message,
+        "is_finished": True,
+        "is_success": is_success
+    }
+    try:
+        salesforce_api_call(context, endpoint, method='post', data=post_fields)
+    except Exception as e:
+        logging.exception(e)
+        try:
+            # in case of error (missing /FunctionWebEvent endpoint), send an event. This is for previous versions
+            # without the endpoint and to update the progress status field
+            event_fields, event_name = load_event_names_and_fields(context, error_message, True, is_success,
+                                                                   result_data, status)
+            event_fields, event_name = check_and_replace_name_space(event_fields, event_name)
+            salesforce_api_call(context, f'/services/data/v<APIVERSION>/sobjects/{event_name}/', method='post',
+                                data=event_fields)
+        except Exception as e:
+            logging.exception(e)
+
+    return True
+
+
+def set_status(context, status=None, error_message=None, result_data=None):
+    """
+    Try to set the status of the job in salesforce.
+    This should never fail fatally, just log the error (temporary network errors, permission errors, etc)
+    """
+    error_if_any = error_message and f" error={error_message!r}" or ''
+    logging.info(f'setting status {status or ""!r}{error_if_any}')
+
+    if error_message:
+        with open('/tmp/cf_function_error_message.txt', "w") as file:
+            file.write(error_message)
+
+    if result_data:
+        with open('/tmp/cf_function_result_data.txt', "w") as file:
+            file.write(result_data)
+
+    try:
+        event_fields, event_name = load_event_names_and_fields(context, None, None, None, None, status)
+        event_fields, event_name = check_and_replace_name_space(event_fields, event_name)
+        salesforce_api_call(context, f'/services/data/v<APIVERSION>/sobjects/{event_name}/',
+                            method='post', data=event_fields)
+    except Exception as e:
+        logging.exception(e)
+        return False
+    return True
+
+
+def check_and_replace_name_space(event_fields, event_name):
+    if Context.NAMESPACE == 'copado__':
+        return event_fields, event_name
+    event_name = event_name.replace('copado__', Context.NAMESPACE)
+    event_fields = {k.replace('copado__', Context.NAMESPACE): v for k, v in event_fields.items()}
+    return event_fields, event_name
+
+
+def load_event_names_and_fields(context, error_message, is_finished, is_success, result_data, status):
+    event_name = 'copado__MC_Result__e'
+    event_fields = {'copado__ResultId__c': context.result_id}
+    if status is not None:
+        event_fields['copado__Progress_Status__c'] = status
+    if error_message is not None:
+        event_fields['copado__Error_Message__c'] = error_message
+    if result_data is not None:
+        event_fields['copado__Result_Data__c'] = result_data
+    if is_finished:
+        event_fields['copado__IsFinished__c'] = is_finished
+        event_fields['copado__IsSuccess__c'] = is_success
+    return event_fields, event_name
+
+
+def upload_file_to_salesforce(context, path_name, name=None, parent_id=None):
+    """
+    Upload a Salesforce File associated with parentId ( by default parent_id=result_id )
+    """
+    parent_id = parent_id or context.result_id
+    name = name or os.path.basename(path_name)
+
+    logging.info(f'uploading file={path_name} with name {name} associated with recordId={parent_id}')
+
+    data = {
+        "Title": name,
+        "FirstPublishLocationId": parent_id,
+        "PathOnClient": path_name
+    }
+    with open(path_name, "rb") as file:
+        files = {
+            'json': (None, json.dumps(data), 'application/json'),
+            'VersionData': (name, file, 'application/octet-stream')
+        }
+        headers = {
+            "Content-Type": None  # force the library to use multipart
+        }
+        salesforce_api_call(context, '/services/data/v<APIVERSION>/sobjects/ContentVersion',
+                            method='post', files=files, headers=headers)
+    return True
+
+
+def download_files_from_salesforce(context, ids, directory=''):
+    """
+    Download a file to the current directory
+    """
+    if context.TESTING_MODE:
+        return
+    resp = salesforce_list_id_and_title_of_files(context, ids)
+    names_map = load_map_for_id_and_title(resp)
+
+    for file_id in ids:
+        path_name = os.path.join(directory, file_id + '.' + names_map[file_id])
+        logging.info(f'download file={path_name}')
+        resp = salesforce_api_call(context,
+                                   f'/services/data/v<APIVERSION>/sobjects/ContentVersion/{file_id}/VersionData')
+        with open(os.path.join(directory, names_map[file_id]), 'wb') as f:
+            f.write(resp)
+
+
+def load_map_for_id_and_title(resp):
+    names_map = {}
+    if 'records' in resp:
+        for rec in resp['records']:
+            names_map[rec['Id']] = rec['Title']
+    return names_map
+
+
+def salesforce_list_id_and_title_of_files(context, ids):
+    soql = build_query_for_context_version(ids)
+    resp = salesforce_api_call(context, '/services/data/v<APIVERSION>/query/', parameters={'q': soql})
+    assert resp.get('done'), resp  # safety check, we do not expect over 2000 items
+    return resp
+
+
+def build_query_for_context_version(ids):
+    soql_in_clause = "'" + "','".join(map(shlex.quote, ids)) + "'"
+    soql = 'SELECT Id, Title FROM ContentVersion WHERE id in (' + soql_in_clause + ')'
+    return soql
+
+
+def add_timestamp_to_log(log_filename):
+    # optional formatting of the logs (adding timestamp)
+    cmd = f'while IFS= read -r line; do printf \'%s\t%s\n\' "$(date \'+%Y-%m-%d %H:%M:%S %Z\')" "$line"; done < {log_filename} > {log_filename}.tmp && mv {log_filename}.tmp {log_filename}'  # noqa: E501
+    completed_process = subprocess.run(cmd, shell=True, check=False, executable='/bin/bash')
+    if completed_process.returncode:
+        logging.warning("There was an internal problem attempting to format logs. Result=%s", completed_process)
+
+
+def censor_sensitive_variables(log_filename, parameters):
+    sensitive_parameters = [param for param in parameters if param.get('sensitive') and param.get('value')]
+
+    if not sensitive_parameters:
+        return sensitive_parameters
+
+    try:
+        # NOTE: this reads the whole file in memory. Acceptable risk in Copado Functions
+        with open(log_filename, 'rb') as f:
+            contents = f.read()
+        for param in sensitive_parameters:
+            contents = contents.replace(str(param.get('value') or '').encode('UTF-8'), b'***')
+        with open(log_filename, 'wb') as f:
+            f.write(contents)
+    except Exception as e:
+        logging.warning("censor_sensitive_variables() error=%s", e)
+        raise e  # we want to fail and prevent uploading the logs with sensitive information
+    return sensitive_parameters
+
+
+def parse_cli_arguments():
+    parser = argparse.ArgumentParser()
+
+    group_status = parser.add_argument_group(
+        'Set the progress of the job, optionally adding an error message and/or a result')
+    group_status.add_argument('-p', '--progress', type=str, metavar='PROGRESS_MESSAGE')
+    group_status.add_argument('-e', '--error-message', type=str)
+    group_status.add_argument('-r', '--result-data', type=str)
+
+    group_files = parser.add_argument_group(
+        'Upload a File associated to the Result Object, or the given parent id, and an optional name in Salesforce')
+    group_files.add_argument('-u', '--uploadfile', type=str, dest='upload_file',
+                             help='upload the file with path UPLOADFILE')
+    group_files.add_argument('-n', '--name', type=str,
+                             help='optionally create the File object with name NAME')
+    group_files.add_argument('-i', '--parentid', type=str, dest='parent_id',
+                             help='optionally associate with the object Id '
+                                  'PARENTID instead of the Result record')
+    group_files.add_argument('--upsert', action='store_true', dest='upsert',
+                             help='optionally delete any file with the same Title and PARENTID/RESULT')
+    group_files.add_argument('--downloadfiles', nargs='+', dest='contentVersionId',
+                             help='download the list of ContentVersion IDs. The local file names'
+                                  ' will have the format <ID>.<TITLE>')
+    group_files.add_argument('--downloaddir', type=str, dest='downloaddir', default='',
+                             help='Download the Files in this folder. Defaults to current directory')
+
+    group_init = parser.add_argument_group(
+        'Private for copado. Initialize and run a Copado Function with the Request file')
+    group_init.add_argument('--requestfile', type=argparse.FileType('r'), dest='request_file')
+    group_init.add_argument('--requestjson', type=str, dest='request_json')
+
+    args = parser.parse_args()
+
+    return args, parser
+
+
+def signal_handler(signum, frame):
+    logging.warning("[SIGNAL][SIGTERM] Termination signal sent from k8")
+    global sigterm_received
+    sigterm_received = True
+
+
+def main():
+    socket.setdefaulttimeout(120)
+    Context.configure_logging()
+
+    args, parser = parse_cli_arguments()
+    if args.progress:
+        ctx = Context()
+        set_status(ctx, args.progress, args.error_message, args.result_data)
+    elif args.upload_file:
+        ctx = Context()
+        upload_file_to_salesforce(ctx, args.upload_file, args.name, args.parent_id)
+    elif args.contentVersionId:
+        ctx = Context()
+        download_files_from_salesforce(ctx, args.contentVersionId, args.downloaddir)
+    elif args.request_file or args.request_json:
+        signal.signal(signal.SIGTERM, signal_handler)
+        assert Context.SF_API_VERSION
+        request, ctx = prepare_copado_function(args.request_file, args.request_json)
+        run_copado_function(ctx)
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
