@@ -4,6 +4,10 @@ Run Salesforce Code Analyzer on the components changed in a Copado user story or
 promotion. Review security, quality and performance findings in Copado, and use
 quality gates to enforce a severity threshold before promotion or deployment.
 
+**Release 4.1** uses Salesforce Code Analyzer **5.16.0**, with ApexGuru analysis
+for changed Apex classes and triggers. Results combine local-engine and ApexGuru
+findings in Copado and apply the configured severity threshold.
+
 ## Is this extension for you?
 
 Are you a Copado customer? ✅
@@ -118,11 +122,13 @@ and the repository's [scenario configuration examples](test-data/configs/).
 
 ## Testing the setup
 
-If you've set up the `After Commit` Quality Gate as above, commit changes that include Apex classes, LWCs, Apex components, flows, or messaging channels on a user story tied to the environment/stage where your Quality Gate is configured. The Commit Action will then invoke `Code Analyzer` after every commit.
+Commit a small change through a user story covered by your quality gate. The gate
+runs when the configured lifecycle, environment or stage, and Advanced Filters
+match. Open the resulting Test and Result records to verify execution and findings.
 
-Here's some [test metadata](./test-data/) that can be used to test the Quality Gate, and (optional)sample [configuration files](./test-data/configs/).
+Here's some [test metadata](./test-data/) that can be used to test the Quality Gate, and optional sample [configuration files](./test-data/configs/).
 
-## ApexGuru in the upcoming 4.0 release
+## ApexGuru analysis
 
 ApexGuru analyzes changed Apex classes (`.cls`) and triggers (`.trigger`). Its
 findings appear alongside the local engines' findings and participate in the
@@ -151,8 +157,7 @@ scan as successful ApexGuru coverage. Local findings can still fail the gate.
 Commit a small change through a story covered by the gate, then open its Test and
 Result records. The result viewer supports engine/rule and metadata-type/file
 grouping, severity filters, search and expandable findings. Open the Result
-record directly for more space. The attached `output.json` contains the report,
-engine versions and ApexGuru insights.
+record directly for more space.
 
 ## Trigger points in action
 
